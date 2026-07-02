@@ -1,5 +1,31 @@
-- name: Start SHANA AI Bot
+name: SHANA ai
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+
+      - name: Start SHANA AI Bot and Show QR
         run: |
           node index.js &
-          sleep 60
-          cat /dev/null
+          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 15කින් QR කේතය දිස්වනු ඇත..."
+          sleep 20
+          echo "✅ ක්‍රියාවලිය අවසන් විය."
