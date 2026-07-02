@@ -19,6 +19,12 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install Puppeteer Dependencies (Chrome Fix)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg
+          sudo apt-get install -y libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb
+
       - name: Install Dependencies
         run: |
           npm install
@@ -26,6 +32,7 @@ jobs:
       - name: Start SHANA AI Bot and Show QR
         run: |
           node index.js &
-          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 15කින් QR කේතය දිස්වනු ඇත..."
-          sleep 20
+          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 20-30කින් QR කේතය දිස්වනු ඇත..."
+          echo "⚠️ QR එක ස්කෑන් කිරීමට ඔබට විනාඩි 5ක කාලයක් ලැබේ!"
+          sleep 300
           echo "✅ ක්‍රියාවලිය අවසන් විය."
