@@ -30,8 +30,20 @@ jobs:
 
       - name: Start SHANA AI Bot and Show QR
         run: |
-          node index.js &
-          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 20කින් QR කේතය දිස්වනු ඇත..."
+          if [ -f "index.js" ]; then
+            node index.js &
+          elif [ -f "server.js" ]; then
+            node server.js &
+          elif [ -f "app.js" ]; then
+            node app.js &
+          elif [ -f "main.js" ]; then
+            node main.js &
+          else
+            echo "❌ ප්‍රධාන ජාවාස්ක්‍රිප්ට් ෆයිල් එක හොයාගන්න බැහැ! npm start හරහා උත්සාහ කරයි..."
+            npm start &
+          fi
+          
+          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 25කින් QR කේතය දිස්වну ඇත..."
           echo "⚠️ QR එක ස්කෑන් කිරීමට ඔබට විනාඩි 5ක කාලයක් ලැබේ!"
           sleep 300
           echo "✅ ක්‍රියාවලිය අවසන් විය."
