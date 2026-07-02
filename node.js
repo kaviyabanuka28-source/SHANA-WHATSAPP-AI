@@ -68,12 +68,16 @@ const client = new Client({
     }
 });
 
-// QR Code එක Generate වෙන Event එක
+// QR Code එක Generate වෙන Event එක - GitHub Environment එකට ගැලපෙන ලෙස සකසා ඇත
 client.on('qr', (qr) => {
     console.log('\n🟢 SHANA AI - WhatsApp Bot');
     console.log('========================');
     console.log('📱 කරුණාකර WhatsApp එකෙන් QR Code එක Scan කරන්න:\n');
-    qrcode.generate(qr, { small: true });
+    
+    // GitHub / Linux Terminal වල අකුරු වලින් පැහැදිලිව QR එක වැටීමට small option එක string එකක් ලෙස log කිරීම
+    qrcode.generate(qr, { small: true }, function (qrcodeStr) {
+        console.log(qrcodeStr);
+    });
 });
 
 // Bot එක Ready වුනාම Print කරන්න
@@ -192,8 +196,7 @@ client.on('message', async (message) => {
 
 // 1XBET Deposit/Withdraw Details
 async function send1XBETDetails(message) {
-    const betText = `🔯 *BOC* 
-🔯 94118758
+    const betText = `🔯 *BOC* 🔯 94118758
 🔯 MINNERIYA
 🔯 K.G LAKSHAN KAVISHKA KUMARA
 
@@ -205,16 +208,13 @@ async function send1XBETDetails(message) {
 ✳️ LAKSHAN ( open ) 
 ( වැඩ්පුර රුපියල් 20-/ දැමිමට කාරුණික වන්න )
 
-✡️ *Binanace* 
-✡️ 1066282628
+✡️ *Binanace* ✡️ 1066282628
 ✡️ LAKSHAN 
 
-🔯 *ipay* 
-🔯 0764104588
+🔯 *ipay* 🔯 0764104588
 🔯 Lakshan
 
-✡️ *Dialog Finance PLC* 
-✡️ 0010 2217 5776
+✡️ *Dialog Finance PLC* ✡️ 0010 2217 5776
 ✡️ LAKSHAN KAVISHKA KUMARA
 
 ⏱️ *DEPOSIT* - minute 2-5 😍
@@ -259,7 +259,7 @@ _MINI Withdraw Rs 250-/_
 
 *පියවර 5*
 • ඉන් පසු ඔබට ඔබගේ gmail එකක් හෝ phone නම්බ එකක් ඇඩ් කරලා තියේනවානම් කෝඩ් එකක් එයි
-• එක දිලා කන්පොම් කරන්න
+• එකදිලා කන්පොම් කරන්න
 
 *පියවර 6*
 • ඉන් පසුව ඇප් එකේන් බැක් වී ආපාසු ඇප් එකට ලොග් වී විත්‍රොල් තැනට යන්න
