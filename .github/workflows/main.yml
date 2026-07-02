@@ -28,22 +28,20 @@ jobs:
         run: |
           npm install
 
-      - name: Start SHANA AI Bot and Show QR
+      - name: Find and Start Bot
         run: |
-          if [ -f "index.js" ]; then
-            node index.js &
-          elif [ -f "server.js" ]; then
-            node server.js &
-          elif [ -f "app.js" ]; then
-            node app.js &
-          elif [ -f "main.js" ]; then
-            node main.js &
+          # දැනට repository එක ඇතුලේ තියෙන ප්‍රධානම JS ෆයිල් එකක් හොයාගන්නවා (node_modules හැර)
+          TARGET_FILE=$(find . -maxdepth 2 -name "*.js" ! -path "*/node_modules/*" | head -n 1)
+          
+          if [ -n "$TARGET_FILE" ]; then
+            echo "🎯 සොයාගත් ෆයිල් එක ධාවනය වේ: $TARGET_FILE"
+            node "$TARGET_FILE" &
           else
-            echo "❌ ප්‍රධාන ජාවාස්ක්‍රිප්ට් ෆයිල් එක හොයාගන්න බැහැ! npm start හරහා උත්සාහ කරයි..."
-            npm start &
+            echo "❌ කිසිදු .js ෆයිල් එකක් සොයාගත නොහැකි විය!"
+            exit 1
           fi
           
-          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 25කින් QR කේතය දිස්වну ඇත..."
+          echo "⏳ බොට් ක්‍රියාත්මක වෙමින් පවතී... තත්පර 25කින් QR කේතය දිස්වනු ඇත..."
           echo "⚠️ QR එක ස්කෑන් කිරීමට ඔබට විනාඩි 5ක කාලයක් ලැබේ!"
           sleep 300
           echo "✅ ක්‍රියාවලිය අවසන් විය."
