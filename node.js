@@ -14,16 +14,19 @@ app.listen(PORT, () => {
     console.log(`🌐 Express Server running on port ${PORT}`);
 });
 
-
-puppeteer: {
-    headless: true,
-    args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu"
-    ]
-}, 
+const client = new Client({
+    puppeteer: {
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu"
+        ]
+    },
+    
+    authStrategy: new LocalAuth() 
+});
 
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
