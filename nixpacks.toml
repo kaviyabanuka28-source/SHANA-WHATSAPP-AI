@@ -1,6 +1,7 @@
 [phases.setup]
 nixPkgs = [
     "chromium",
+    "glib",
     "nss",
     "nspr",
     "atk",
@@ -15,8 +16,7 @@ nixPkgs = [
     "libgbm",
     "alsa-lib",
     "pango",
-    "cairo"
+    "cairo",
+    "xorg.libX11",
+    "xorg.libxcb"
 ]
-
-[start]
-cmd = "node index.js"
