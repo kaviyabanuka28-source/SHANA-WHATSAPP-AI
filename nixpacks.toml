@@ -1,6 +1,5 @@
 [phases.setup]
 nixPkgs = [
-  "chromium",
   "glib",
   "nss",
   "nspr",
@@ -22,5 +21,6 @@ nixPkgs = [
   "libglvnd",
   "mesa",
   "fontconfig",
-  "freetype"
+  "freetype",
+  "chromium"
 ]
