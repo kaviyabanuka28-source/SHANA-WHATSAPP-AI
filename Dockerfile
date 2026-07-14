@@ -21,8 +21,12 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY package*.json ./
+
+# package.json විතරක් copy කරන්න
+COPY package.json ./
 RUN npm install
+
+# අනිත් code එක copy කරන්න
 COPY . .
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
