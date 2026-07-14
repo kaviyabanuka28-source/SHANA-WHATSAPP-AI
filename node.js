@@ -14,16 +14,16 @@ app.listen(PORT, () => {
     console.log(`🌐 Express Server running on port ${PORT}`);
 });
 
+
 puppeteer: {
     headless: true,
-    // executablePath එක ඉවත් කරන්න, ENV එකෙන් puppeteer එක හොයාගනී
-   args: [
+    args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu"
     ]
-});
+}, 
 
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
