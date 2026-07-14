@@ -18,22 +18,17 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     fonts-liberation \
+    && ldconfig \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Dependencies install කරන්න
 COPY package.json ./
 RUN npm install
 
-# කෝඩ් එක copy කරන්න
 COPY . .
 
-# Environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-
-# Node path එක හරියටම දීම
-ENV PATH="/usr/local/bin:${PATH}"
 
 CMD ["node", "node.js"]
