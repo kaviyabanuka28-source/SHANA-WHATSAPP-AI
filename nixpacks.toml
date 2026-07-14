@@ -19,5 +19,5 @@ nixPkgs = [
     "cairo",
     "xorg.libX11",
     "xorg.libxcb",
-    "chromium-browser" // මේකත් දාන්න
+    "chromium-browser" 
 ]
