@@ -39,7 +39,3 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 CMD ["node", "node.js"]
-# ... (කලින් තිබ්බ apt-get install කොටස එහෙමම තියන්න)
-
-# Chromium එක කොහෙද තියෙන්නේ කියලා හොයලා බලමු
-RUN which chromium || which chromium-browser
