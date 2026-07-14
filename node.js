@@ -44,9 +44,11 @@ const processedMessageIds = new Map();
 const userCooldown = new Map();
 const COOLDOWN_MS = 30 * 60 * 1000; 
 
-// WhatsApp Client එක Initialize කරන්න (ඔයා දුන් අලුත් Config එක)
+// WhatsApp Client එක Initialize කරන්න
 const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: './session-data' }),
+    authStrategy: new LocalAuth({
+        dataPath: './session-data'
+    }),
     puppeteer: {
         headless: true,
         executablePath: '/usr/bin/chromium',
@@ -55,8 +57,7 @@ const client = new Client({
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote',
-            '--single-process'
+            '--no-zygote'
         ]
     }
 });
@@ -161,7 +162,7 @@ async function send1XBETDetails(message) {
 ✡️ *Binanace* ✡️ 1066282628
 ✡️ LAKSHAN 
 
-🔯 *ipay* ✡️ 0764104588
+🔯 *ipay* 🔯 0764104588
 🔯 Lakshan
 
 ✡️ *Dialog Finance PLC* ✡️ 0010 2217 5776
