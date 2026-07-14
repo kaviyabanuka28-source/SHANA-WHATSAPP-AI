@@ -51,12 +51,12 @@ const client = new Client({
     }),
     puppeteer: {
         headless: true,
+        executablePath: '/usr/bin/chromium', 
         args: [
-            '--no-sandbox', 
+            '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-extensions',
-            '--disable-background-networking'
+            '--disable-gpu'
         ]
     }
 });
@@ -146,17 +146,98 @@ client.on('message', async (message) => {
 });
 
 async function send1XBETDetails(message) {
-    const betText = `🔯 *BOC* 🔯 94118758... (ඔබේ පණිවිඩය මෙහි ඇත)`; // පූර්ණ පණිවිඩය මෙහි තබන්න
+    const betText = `🔯 *BOC* 🔯 94118758
+🔯 MINNERIYA
+🔯 K.G LAKSHAN KAVISHKA KUMARA
+
+✳️ *PEOPLE BANK* : 006200150094114
+✳️ K.G.LAKSHAN KAVISHKA KUMARA 
+✳️ HIGURAKGODA
+
+✳️ *ez cash* : 0764104588
+✳️ LAKSHAN ( open ) 
+( වැඩ්පුර රුපියල් 20-/ දැමිමට කාරුණික වන්න )
+
+✡️ *Binanace* ✡️ 1066282628
+✡️ LAKSHAN 
+
+🔯 *ipay* 🔯 0764104588
+🔯 Lakshan
+
+✡️ *Dialog Finance PLC* ✡️ 0010 2217 5776
+✡️ LAKSHAN KAVISHKA KUMARA
+
+⏱️ *DEPOSIT* - minute 2-5 😍
+⏱️ *WITHDRAW* - minute 10-30 😍
+
+👉👉 සැ.යු.: ඔබ විසින් REMARK යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.
+තවද 1X BET, BET යන වචන කිසි සේත්ම භාවිතා නොකල යුතුය...
+
+⚠️ ඉහත ක්‍රම හරහා DEPOSIT කර https://wa.me/+94764104588
+අංකයට පමණක් SLIP එක හා ඔබේ 1XBET PLAYER ID type එවන්න
+
+👉 සැ.යු. : අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.
+
+එසේ නොහැකි නම් පණිවිඩයක් එවීමට කාරුණිකවන්න .
+
+✺ තෙවනපාර්ශවීය සදහා කරණ ගනු දෙනු ❌`;
     await message.reply(betText);
 }
 
 async function sendWithdrawReply(message) {
-    const withdrawText = `📋 *SHANA WITHDRAW ADDRESS* 📋... (ඔබේ පණිවිඩය මෙහි ඇත)`; // පූර්ණ පණිවිඩය මෙහි තබන්න
+    const withdrawText = `📋 *SHANA WITHDRAW ADDRESS* 📋
+
+_MINI Withdraw Rs 250-/_
+
+*පියවර 1*
+• මුලින්ම 1Xbet app එක open කරන්න ඉට පසු menu යන්න.
+• ඉට පසු උඩම ඇති setting අයිකන් එකක් එක ක්ලික් කරන්න
+
+*✺ පියවර 2*
+• ඉට පසුව withdraw කියලා අයිකන් එකක් ඇති එක ඔබන්න
+• ඉට පස්සෙ 1XBET CASH කියන් මෙතඩ් එක තොරන්න
+• පොඩ්ඩක් පහලට වේන්න තියෙන්නේ
+
+*පියවර 3*
+• ඉට පසු ඔබට ගන්න ඔනි ගාන ගහන්න
+
+*පියවර 4*
+❏ city: minneriya පුරවන්න
+❏ street: Lakshan service (24/7) පුරවගන්න
+
+*පියවර 5*
+• ඉන් පසු ඔබට ඔබගේ gmail එකක් හෝ phone නම්බ එකක් ඇඩ් කරලා තියේනවානම් කෝඩ් එකක් එයි
+• එකදිලා කන්පොම් කරන්න
+
+*පියවර 6*
+• ඉන් පසුව ඇප් එකේන් බැක් වී ආපාසු ඇප් එකට ලොග් වී විත්‍රොල් තැනට යන්න
+
+*පියවර 7*
+• ඉට පඩු විත්‍රොල් රේපුස්ට කියලා බටන් එකක් ඇති එක ඔබන්න
+
+*පියවර 8*
+• ඉන් පසුව ඉංග්‍රිසි වචන සහිතව නිල්පාටින් වචන වගයක් ඇවිත් ඇති එහි ඇති GET COUPON කියලා එකක් අන්න එක ඔබන්න
+
+*පියවර 9*
+• එක ඔබවුවට පසුව එනවා කෝඩ් එකක් අන්න එකි SCREEN SHOT එකක් ගහලා OK කරලා මට එවන්න
+
+✅ එච්චරයි!
+
+👉 සැ.යු.: අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.
+
+⚠️ තෙවනපාර්ශවීය සදහා කරණ ගනු දෙනු ❌`;
     await message.reply(withdrawText);
 }
 
 async function sendSocialMediaBoost(message) {
-    const socialText = `📱 *SHANA SOCIAL MEDIA BOOST* 📱... (ඔබේ පණිවිඩය මෙහි ඇත)`; // පූර්ණ පණිවිඩය මෙහි තබන්න
+    const socialText = `📱 *SHANA SOCIAL MEDIA BOOST* 📱
+
+*Facebook Boost* - Likes, Followers, Shares
+*Whatsapp Boost* - Status Views, Followers
+*Tik Tok Boost* - Followers, Views, Likes
+*You Tube Boost* - Subscribers, Views
+*Telegram Boost* - Members, Views
+*Instagram Boost* - Followers, Likes, Views`;
     await message.reply(socialText);
 }
 
