@@ -1,6 +1,5 @@
 FROM node:18-bullseye-slim
 
-# Install dependencies for Chromium
 RUN apt-get update && apt-get install -y \
     chromium \
     libglib2.0-0 \
@@ -18,14 +17,22 @@ RUN apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libcairo2 \
     fonts-liberation \
-    && ldconfig \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
 COPY package.json ./
 RUN npm install
-
 COPY . .
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
