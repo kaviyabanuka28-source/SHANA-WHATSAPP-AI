@@ -1,7 +1,17 @@
-
 [phases.setup]
-nixPkgs = ["glib", "nss", "atk", "cups", "libdrm", "libxkbcommon", "pango", "cairo", "alsa-lib", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libgbm", "chromium"]
-
-[variables]
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "1"
-PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
+nixPkgs = [
+    "chromium",
+    "libglib",
+    "libnss3",
+    "libatk1-0",
+    "libatk-bridge2-0",
+    "libcups",
+    "libdrm",
+    "libxkbcommon",
+    "libxcomposite",
+    "libxdamage",
+    "libxfixes",
+    "libxrandr",
+    "libgbm",
+    "libasound2"
+]
