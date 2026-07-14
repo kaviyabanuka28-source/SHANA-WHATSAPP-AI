@@ -1,6 +1,8 @@
 FROM node:18-bullseye-slim
 
-RUN apt-get update && apt-get install -y \
+# ... (කලින් තිබ්බ apt-get install ටික එහෙමම තියන්න)
+RUN apt-get update && apt-get install -y chromium
+RUN ln -s /usr/bin/chromium /usr/bin/chromium-browser
     chromium \
     libglib2.0-0 \
     libnss3 \
