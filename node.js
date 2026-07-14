@@ -16,7 +16,7 @@ app.listen(PORT, () => {
 
 puppeteer: {
     headless: true,
-    executablePath: '/usr/bin/chromium', 
+    // executablePath එක ඉවත් කරන්න, ENV එකෙන් puppeteer එක හොයාගනී
     args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
