@@ -1,17 +1,20 @@
 [phases.setup]
 nixPkgs = [
     "chromium",
-    "libglib",
-    "libnss3",
-    "libatk1-0",
-    "libatk-bridge2-0",
-    "libcups",
+    "glib",
+    "nss",
+    "nspr",
+    "atk",
+    "at-spi2-atk",
+    "cups",
     "libdrm",
     "libxkbcommon",
-    "libxcomposite",
-    "libxdamage",
-    "libxfixes",
-    "libxrandr",
+    "libXcomposite",
+    "libXdamage",
+    "libXfixes",
+    "libXrandr",
     "libgbm",
-    "libasound2"
+    "alsa-lib",
+    "pango",
+    "cairo"
 ]
