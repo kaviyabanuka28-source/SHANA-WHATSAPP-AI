@@ -44,20 +44,21 @@ const processedMessageIds = new Map();
 const userCooldown = new Map();
 const COOLDOWN_MS = 30 * 60 * 1000; 
 
-// WhatsApp Client එක Initialize කරන්න
+// WhatsApp Client එක Initialize කරන්න - අලුත් configuration එක සහිතව
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: './session-data'
     }),
     puppeteer: {
         headless: true,
-        executablePath: '/usr/bin/chromium', 
+        executablePath: '/usr/bin/chromium',
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote'
+            '--no-zygote',
+            '--single-process'
         ]
     }
 });
