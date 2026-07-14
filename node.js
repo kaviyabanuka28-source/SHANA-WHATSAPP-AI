@@ -44,7 +44,7 @@ const processedMessageIds = new Map();
 const userCooldown = new Map();
 const COOLDOWN_MS = 30 * 60 * 1000; 
 
-// WhatsApp Client එක Initialize කරන්න - අලුත් configuration එක සහිතව
+// WhatsApp Client එක Initialize කරන්න (ඔයා ඉල්ලපු අලුත් Config එක)
 const client = new Client({
     authStrategy: new LocalAuth({
         dataPath: './session-data'
@@ -57,8 +57,7 @@ const client = new Client({
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
             '--disable-gpu',
-            '--no-zygote',
-            '--single-process'
+            '--no-zygote'
         ]
     }
 });
