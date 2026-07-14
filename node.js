@@ -14,16 +14,19 @@ app.listen(PORT, () => {
     console.log(`🌐 Express Server running on port ${PORT}`);
 });
 
-puppeteer: {
-    headless: true,
-    executablePath: '/usr/bin/chromium-browser', // මෙතන -browser කියන එක එකතු කරන්න
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-    ]
-}
+const client = new Client({
+    authStrategy: new LocalAuth({ dataPath: './session-data' }),
+    puppeteer: {
+        headless: true,
+        // executablePath එක මෙතනින් අයින් කරන්න, එතකොට puppeteer තමන්ම හොයාගන්නවා
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu'
+        ]
+    }
+});
 
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
