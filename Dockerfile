@@ -1,6 +1,5 @@
 FROM node:18-bullseye-slim
 
-# ... (කලින් තිබ්බ apt-get install ටික එහෙමම තියන්න)
 RUN apt-get update && apt-get install -y chromium
 RUN ln -s /usr/bin/chromium /usr/bin/chromium-browser
     chromium \
