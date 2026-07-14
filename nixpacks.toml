@@ -20,5 +20,7 @@ nixPkgs = [
   "xorg.libX11",
   "xorg.libxcb",
   "libglvnd",
-  "mesa"
+  "mesa",
+  "fontconfig",
+  "freetype"
 ]
