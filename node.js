@@ -14,23 +14,16 @@ app.listen(PORT, () => {
     console.log(`🌐 Express Server running on port ${PORT}`);
 });
 
-// WhatsApp Client - Docker/Railway සඳහා නිවැරදි Config එක
-const client = new Client({
-    authStrategy: new LocalAuth({ dataPath: './session-data' }),
-    puppeteer: {
-        headless: true,
-        executablePath: '/usr/bin/chromium',
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote',
-            '--single-process',
-            '--disable-extensions'
-        ]
-    }
-});
+puppeteer: {
+    headless: true,
+    executablePath: '/usr/bin/chromium-browser', // මෙතන -browser කියන එක එකතු කරන්න
+    args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+    ]
+}
 
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
