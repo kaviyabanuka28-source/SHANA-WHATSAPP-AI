@@ -1,7 +1,8 @@
 [phases.setup]
 nixPkgs = [
     "chromium",
-    "glib",
+    "libGL",
+    "libglib",
     "nss",
     "nspr",
     "atk",
@@ -16,7 +17,5 @@ nixPkgs = [
     "libgbm",
     "alsa-lib",
     "pango",
-    "cairo",
-    "xorg.libX11",
-    "xorg.libxcb"
+    "cairo"
 ]
