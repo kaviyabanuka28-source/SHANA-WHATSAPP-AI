@@ -1,5 +1,3 @@
-const fs = require('fs');
-const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const express = require('express');
@@ -16,12 +14,20 @@ app.listen(PORT, () => {
     console.log(`🌐 Express Server running on port ${PORT}`);
 });
 
-// WhatsApp Client - Railway සඳහා ප්‍රශස්ත කර ඇත
+// WhatsApp Client - Railway සඳහා සම්පූර්ණ Config එක
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './session-data' }),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process',
+            '--disable-extensions'
+        ]
     }
 });
 
@@ -34,11 +40,7 @@ client.on('ready', () => {
     console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
 });
 
-// --- Message Logic ---
-const processedMessageIds = new Map();
-const userCooldown = new Map();
-const COOLDOWN_MS = 30 * 60 * 1000; 
-
+// Service Closed Logic
 function isServiceClosed() {
     const now = new Date();
     const slOffset = 5.5 * 60 * 60 * 1000;
@@ -51,7 +53,6 @@ function isServiceClosed() {
 
 client.on('message', async (message) => {
     const msg = message.body.toLowerCase().trim();
-    const userId = message.from;
     
     if (isServiceClosed()) return;
 
@@ -68,7 +69,7 @@ async function send1XBETDetails(message) {
 }
 
 async function sendWithdrawReply(message) {
-    await message.reply(`📋 *SHANA WITHDRAW ADDRESS* 📋\n\nපියවර 1: 1Xbet app එක open කරන්න...\n(ඔයාගේ කලින් තිබ්බ සම්පූර්ණ විස්තරය මෙතනට දාන්න)`);
+    await message.reply(`📋 *SHANA WITHDRAW ADDRESS* 📋\n\nපියවර 1: 1Xbet app එක open කරන්න...\n(ඔයාගේ සම්පූර්ණ විස්තර මෙතනට ඇතුලත් කරන්න)`);
 }
 
 async function sendSocialMediaBoost(message) {
