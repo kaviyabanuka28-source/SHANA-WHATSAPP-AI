@@ -37,7 +37,7 @@ client.on('ready', () => {
 
 // මෙය වැදගත්ම කොටස: බොට් එක පණ ගැන්වූ පසු අංකය ඉල්ලීම
 client.initialize().then(async () => {
-    const phoneNumber = 'YOUR_WHATSAPP_NUMBER'; // මෙතැනට ඔබේ WhatsApp අංකය (රටේ කෝඩ් එකත් සමඟ - උදා: 947XXXXXXXX) දමන්න
+    const phoneNumber = '94742381405'; // මෙතැනට ඔබේ WhatsApp අංකය (රටේ කෝඩ් එකත් සමඟ - උදා: 947XXXXXXXX) දමන්න
     const pairingCode = await client.requestPairingCode(phoneNumber);
     console.log('🟢 ඔබේ Pairing Code එක මෙයයි: ' + pairingCode);
     console.log('කරුණාකර මෙම අංක 8 ඔබේ WhatsApp හි "Link with phone number" කොටසට ඇතුළත් කරන්න.');
