@@ -24,13 +24,14 @@ const client = new Client({
             "--disable-gpu"
         ]
     },
-    
     authStrategy: new LocalAuth() 
 });
 
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
+    // small: true දීමෙන් QR එක කුඩා සහ පැහැදිලි කරයි
     qrcode.generate(qr, { small: true });
+    console.log('--- සටහන: මෙය scan කිරීමට දුරකථනය තිරයෙන් මඳක් ඈත් කරන්න ---');
 });
 
 client.on('ready', () => {
