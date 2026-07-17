@@ -1,6 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const qrcodeImg = require('qrcode'); // QR පින්තූරය සෑදීමට
+const qrcodeImg = require('qrcode');
 const express = require('express');
 const fs = require('fs');
 
@@ -29,7 +29,7 @@ const client = new Client({
     authStrategy: new LocalAuth() 
 });
 
-// QR Logic
+// QR Logic - ක්‍රම 3ම එකට
 client.on('qr', (qr) => {
     console.log('\n🟢 QR RECEIVED, SCAN THIS:');
     
@@ -38,9 +38,13 @@ client.on('qr', (qr) => {
     
     // 2. ඒ QR එකම පින්තූරයක් ලෙස qr.png නමින් සේව් කරයි
     qrcodeImg.toFile('qr.png', qr, (err) => {
-        if (err) throw err;
-        console.log('✅ QR Code එක qr.png ලෙස සේව් වුණා!');
+        if (err) console.error("QR Image save failed:", err);
+        else console.log('✅ QR Code එක qr.png ලෙස සේව් වුණා!');
     });
+
+    // 3. QR එක ස්කෑන් කරගන්න බැරි නම්, අන්තර්ජාල ලින්ක් එක
+    console.log('--- QR CODE පේන්නේ නැත්නම් පහත URL එක Browser එකේ අරින්න ---');
+    console.log('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qr));
 });
 
 client.on('ready', () => {
