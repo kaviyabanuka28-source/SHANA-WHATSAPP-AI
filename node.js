@@ -5,12 +5,10 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.get('/ping', (req, res) => {
-    res.status(200).json({ status: 'alive', message: 'SHANA AI Bot is running ✅' });
+    res.status(200).json({ status: 'alive' });
 });
 
-app.listen(PORT, () => {
-    console.log(`🌐 Express Server running on port ${PORT}`);
-});
+app.listen(PORT);
 
 const client = new Client({
     puppeteer: {
@@ -24,17 +22,17 @@ client.on('ready', () => {
     console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
 });
 
+// අංකය ඇතුළත් කිරීම
 client.initialize().then(async () => {
-    // මෙතැනට ඔබේ WhatsApp අංකය ඇතුළත් කරන්න (උදා: 9477xxxxxxx)
+    // ඔබේ අංකය (රටේ කෝඩ් එක සමඟ 94xxxxxxxxx)
     const phoneNumber = '947xxxxxxxx'; 
     const pairingCode = await client.requestPairingCode(phoneNumber);
-    console.log('🟢 ඔබේ Pairing Code එක මෙයයි: ' + pairingCode);
+    console.log('🟢 ඔබේ Pairing Code එක: ' + pairingCode);
 });
 
-// පණිවිඩ Logic එක
 client.on('message', async (message) => {
-    const msg = message.body.toLowerCase().trim();
-    if (msg === '1') { await message.reply('1XBET Details...'); }
-    else if (msg === '2') { await message.reply('Withdraw details...'); }
-    else { await message.reply('Hy! Please select 1, 2, or 3.'); }
+    // ඔබේ message logic එක මෙතැනට දාන්න
+    if (message.body === '1') {
+        await message.reply('1XBET Details...');
+    }
 });
