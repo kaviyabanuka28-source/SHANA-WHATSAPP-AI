@@ -2,9 +2,9 @@
   "name": "shana-whatsapp-ai",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "node.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node.js"
   },
   "dependencies": {
     "whatsapp-web.js": "^1.23.0",
