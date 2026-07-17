@@ -1,10 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const qrcodeImg = require('qrcode');
 const express = require('express');
-const fs = require('fs');
 
-// Express Server
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -29,26 +25,22 @@ const client = new Client({
     authStrategy: new LocalAuth() 
 });
 
-// QR Logic - ක්‍රම 3ම එකට
-client.on('qr', (qr) => {
-    console.log('\n🟢 QR RECEIVED, SCAN THIS:');
-    
-    // 1. Terminal එකේ පෙන්වයි
-    qrcode.generate(qr, { small: true });
-    
-    // 2. ඒ QR එකම පින්තූරයක් ලෙස qr.png නමින් සේව් කරයි
-    qrcodeImg.toFile('qr.png', qr, (err) => {
-        if (err) console.error("QR Image save failed:", err);
-        else console.log('✅ QR Code එක qr.png ලෙස සේව් වුණා!');
-    });
-
-    // 3. QR එක ස්කෑන් කරගන්න බැරි නම්, අන්තර්ජාල ලින්ක් එක
-    console.log('--- QR CODE පේන්නේ නැත්නම් පහත URL එක Browser එකේ අරින්න ---');
-    console.log('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' + encodeURIComponent(qr));
+// Pairing Code Logic
+client.on('qr', async (qr) => {
+    // QR එක පෙන්වනවා වෙනුවට අපි Pairing Code එක ඉල්ලනවා
+    console.log('QR received, requesting pairing code...');
 });
 
 client.on('ready', () => {
     console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
+});
+
+// මෙය වැදගත්ම කොටස: බොට් එක පණ ගැන්වූ පසු අංකය ඉල්ලීම
+client.initialize().then(async () => {
+    const phoneNumber = 'YOUR_WHATSAPP_NUMBER'; // මෙතැනට ඔබේ WhatsApp අංකය (රටේ කෝඩ් එකත් සමඟ - උදා: 947XXXXXXXX) දමන්න
+    const pairingCode = await client.requestPairingCode(phoneNumber);
+    console.log('🟢 ඔබේ Pairing Code එක මෙයයි: ' + pairingCode);
+    console.log('කරුණාකර මෙම අංක 8 ඔබේ WhatsApp හි "Link with phone number" කොටසට ඇතුළත් කරන්න.');
 });
 
 // Message Logic
@@ -74,5 +66,3 @@ async function sendWithdrawReply(message) {
 async function sendSocialMediaBoost(message) { 
     await message.reply(`📱 *SHANA SOCIAL MEDIA BOOST* 📱\n\nFacebook, WhatsApp, TikTok, YouTube, Telegram, Instagram Boosts available!`); 
 }
-
-client.initialize();
