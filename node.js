@@ -25,7 +25,7 @@ client.on('ready', () => {
 // අංකය ඇතුළත් කිරීම
 client.initialize().then(async () => {
     // ඔබේ අංකය (රටේ කෝඩ් එක සමඟ 94xxxxxxxxx)
-    const phoneNumber = '947xxxxxxxx'; 
+    const phoneNumber = '94742381405'; 
     const pairingCode = await client.requestPairingCode(phoneNumber);
     console.log('🟢 ඔබේ Pairing Code එක: ' + pairingCode);
 });
