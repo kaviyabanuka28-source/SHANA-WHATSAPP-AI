@@ -13,7 +13,7 @@ app.listen(PORT, () => {
 });
 
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({ clientId: "shana-bot" }), // clientId එකක් දීම වඩා හොඳයි
     puppeteer: {
         headless: true,
         args: [
@@ -21,37 +21,44 @@ const client = new Client({
             "--disable-setuid-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
-            "--no-zygote"
+            "--no-zygote",
+            "--single-process" 
         ]
     }
 });
 
-// 1. බොට් එක සම්බන්ධ වූ විට සිදුවන දේ
-client.on('ready', async () => {
+// බොට් එක සූදානම් වූ පසු මෙය ක්‍රියාත්මක වේ
+client.on('ready', () => {
     console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
+});
+
+// Pairing Code ලබා ගැනීම (මෙය බොට් එක ආරම්භ වීමේදීම සිදුකරන්න)
+client.on('authenticated', () => {
+    console.log('✅ AUTHENTICATED!');
+});
+
+// පණිවිඩ වලට පිළිතුරු දීම
+client.on('message', async (message) => {
+    console.log(`පණිවිඩයක් ලැබුනි: ${message.body}`);
+
+    if (message.body === '1') {
+        await message.reply('1XBET Details මෙතැනින් ලබාගන්න...');
+    }
     
-    // Pairing Code එක ලබා ගැනීම
+    if (message.body.toLowerCase() === 'hi') {
+        await message.reply('හෙලෝ! SHANA AI Bot වෙත සාදරයෙන් පිළිගනිමු.');
+    }
+});
+
+// අත්‍යවශ්‍යම පියවර: බොට් එක ආරම්භ කිරීම
+client.initialize().then(async () => {
+    console.log('⏳ Pairing Code එක උත්සාහ කරමින්...');
     try {
         const phoneNumber = '94742381405'; 
         const pairingCode = await client.requestPairingCode(phoneNumber);
         console.log('🟢 ඔබේ Pairing Code එක: ' + pairingCode);
     } catch (error) {
         console.error('❌ Pairing code ලබා ගැනීමේ දෝෂයක්:', error);
-    }
-});
-
-// 2. පණිවිඩ වලට පිළිතුරු දීම (Auto Reply Logic)
-client.on('message', async (message) => {
-    console.log(`පණිවිඩයක් ලැබුනි: ${message.body}`);
-
-    // උදාහරණය: '1' එවූ විට පිළිතුරු දීම
-    if (message.body === '1') {
-        await message.reply('1XBET Details මෙතැනින් ලබාගන්න...');
-    }
-    
-    // ඔබට අවශ්‍ය තවත් ඕනෑම දෙයක් මෙතැනට එකතු කරන්න
-    if (message.body.toLowerCase() === 'hi') {
-        await message.reply('හෙලෝ! SHANA AI Bot වෙත සාදරයෙන් පිළිගනිමු.');
     }
 });
 
@@ -62,8 +69,4 @@ client.on('auth_failure', msg => {
 client.on('disconnected', (reason) => {
     console.log('⚠️ Client disconnected:', reason);
     process.exit(); 
-});
-
-client.initialize().catch(err => {
-    console.error('❌ Initialization failed:', err);
 });
