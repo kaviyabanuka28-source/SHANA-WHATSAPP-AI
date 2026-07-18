@@ -1,12 +1,13 @@
 {
-  "name": "shana-whatsapp-ai",
-  "version": "1.0.0",
-  "main": "node.js",
-  "scripts": {
-    "start": "node node.js"
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "apt-get update && apt-get install -y chromium-browser chromium-codecs-ffmpeg"
   },
-  "dependencies": {
-    "whatsapp-web.js": "^1.23.0",
-    "express": "^4.18.2"
+  "deploy": {
+    "startCommand": "node bot.js",
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }
