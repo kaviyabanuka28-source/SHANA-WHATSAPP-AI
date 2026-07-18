@@ -4,7 +4,6 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Railway වැනි සේවාවන් සඳහා heartbeat එකක්
 app.get('/', (req, res) => {
     res.status(200).send('Bot is running!');
 });
@@ -20,34 +19,18 @@ const client = new Client({
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage", // මෙය ඉතා වැදගත් (Memory ගැටලු මගහැරීමට)
+            "--disable-dev-shm-usage",
             "--disable-gpu",
             "--no-zygote"
         ]
     }
 });
 
-client.on('ready', () => {
-    console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
-});
-
-// දෝෂ හඳුනාගැනීම සඳහා
-client.on('auth_failure', msg => {
-    console.error('❌ Authentication failed:', msg);
-});
-
-client.on('disconnected', (reason) => {
-    console.log('⚠️ Client disconnected:', reason);
-    process.exit(); // නැවත restart වීමට
-});
-
-// අංකය ඇතුළත් කිරීම සහ Pairing Code ලබා ගැනීම
-client.initialize().catch(err => {
-    console.error('❌ Initialization failed:', err);
-});
-
-// Pairing code ලබා ගැනීමේදී ඇතිවන දෝෂ මගහැරීමට try-catch භාවිතා කිරීම
+// 1. බොට් එක සම්බන්ධ වූ විට සිදුවන දේ
 client.on('ready', async () => {
+    console.log('✅ SHANA AI Bot SYSTEM CONNECTED!');
+    
+    // Pairing Code එක ලබා ගැනීම
     try {
         const phoneNumber = '94742381405'; 
         const pairingCode = await client.requestPairingCode(phoneNumber);
@@ -57,9 +40,30 @@ client.on('ready', async () => {
     }
 });
 
+// 2. පණිවිඩ වලට පිළිතුරු දීම (Auto Reply Logic)
 client.on('message', async (message) => {
-    // Message logic
+    console.log(`පණිවිඩයක් ලැබුනි: ${message.body}`);
+
+    // උදාහරණය: '1' එවූ විට පිළිතුරු දීම
     if (message.body === '1') {
-        await message.reply('1XBET Details...');
+        await message.reply('1XBET Details මෙතැනින් ලබාගන්න...');
     }
+    
+    // ඔබට අවශ්‍ය තවත් ඕනෑම දෙයක් මෙතැනට එකතු කරන්න
+    if (message.body.toLowerCase() === 'hi') {
+        await message.reply('හෙලෝ! SHANA AI Bot වෙත සාදරයෙන් පිළිගනිමු.');
+    }
+});
+
+client.on('auth_failure', msg => {
+    console.error('❌ Authentication failed:', msg);
+});
+
+client.on('disconnected', (reason) => {
+    console.log('⚠️ Client disconnected:', reason);
+    process.exit(); 
+});
+
+client.initialize().catch(err => {
+    console.error('❌ Initialization failed:', err);
 });
