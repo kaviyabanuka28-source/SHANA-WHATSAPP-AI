@@ -1,11 +1,4 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const readline = require('readline');
-
-// අංකය ලබා ගැනීමට readline සකසමු
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
@@ -15,39 +8,39 @@ const client = new Client({
     }
 });
 
-// බොට් ආරම්භයේදී අංකය ඉල්ලීම
-client.on('qr', async () => {
-    console.log('📌 QR Code ක්‍රමය වෙනුවට Pair Code ක්‍රමයට මාරු වේ...');
-});
+// ඔබගේ WhatsApp අංකය මෙතැනට ඇතුළත් කරන්න (රටේ කෝඩ් එකත් සමඟ - උදා: 947XXXXXXXX)
+const MY_PHONE_NUMBER = '94742381405'; 
 
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// ප්‍රධාන ක්‍රියාවලිය
-async function startBot() {
-    console.log('🚀 SHANA AI BOT STARTING...');
-    
-    // Pairing Code එක සක්‍රිය කිරීම සඳහා ඉවත්ව සිටීම
-    client.on('code', (code) => {
-        console.log('================================================');
-        console.log(`🔢 ඔබේ Pairing Code එක: ${code}`);
-        console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
-        console.log('================================================');
-    });
+// Pairing Code ජනනය කිරීම
+client.on('qr', async (qr) => {
+    console.log('📌 QR ලැබී ඇත, Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
+});
 
-    // අංකය ලබාගෙන Pairing Code එක ඉල්ලීම
-    rl.question('📱 කරුණාකර ඔබගේ WhatsApp අංකය ලබා දෙන්න (උදා: 947XXXXXXXX): ', async (number) => {
-        try {
-            await client.initialize();
-            const pairingCode = await client.requestPairingCode(number);
-            console.log('⌛ කෝඩ් එක ජනනය වෙමින් පවතී...');
-        } catch (err) {
-            console.error('❌ දෝෂයක් සිදුවිය: ', err);
-        }
-        rl.close();
-    });
-}
+client.on('code', (code) => {
+    console.log('================================================');
+    console.log(`🔢 ඔබේ Pairing Code එක: ${code}`);
+    console.log('🔗 WhatsApp > Linked Devices > Link a Device > Link with phone number instead යන්න.');
+    console.log('================================================');
+});
+
+// බොට් ආරම්භ වන විටම අංකය හරහා Pairing Code ඉල්ලීම
+client.on('authenticated', () => {
+    console.log('🔑 සත්‍යාපනය සාර්ථකයි!');
+});
+
+client.initialize().then(async () => {
+    try {
+        console.log('🚀 Pairing Code ඉල්ලීම සිදු කෙරේ...');
+        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+        console.log('⌛ Pairing Code ඉල්ලීම සාර්ථකව යවන ලදී.');
+    } catch (err) {
+        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
+    }
+});
 
 // Auto Reply Commands
 client.on('message', async (message) => {
@@ -80,5 +73,3 @@ client.on('message', async (message) => {
         await message.reply('🤖 පණිවිඩය ලැබුණි! \nමෙනුව බැලීමට *menu* ටයිප් කරන්න.');
     }
 });
-
-startBot();
