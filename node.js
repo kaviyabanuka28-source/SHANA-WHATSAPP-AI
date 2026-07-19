@@ -3,6 +3,18 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 // Railway Variables වලින් අංකය ලබා ගනී
 const MY_PHONE_NUMBER = process.env.WHATSAPP_NUMBER;
 
+// ඔබ ඉල්ලූ නව කොටස් මෙතැනට ඇතුළත් කර ඇත
+const userCooldowns = new Map(); // Cooldowns තබා ගැනීමට
+const COOLDOWN_TIME = 5000; // තත්පර 5ක ප්‍රමාදයක්
+
+function canReply(userId) {
+    const lastTime = userCooldowns.get(userId);
+    if (lastTime && (Date.now() - lastTime) < COOLDOWN_TIME) {
+        return false; // තවම කාලය මදි
+    }
+    return true; // පිළිතුරු දිය හැක
+}
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
@@ -47,11 +59,6 @@ setTimeout(async () => {
     }
 }, 15000);
 
-// (ඔබේ සෙසු message handling logic කොටස මෙතැනට දමන්න...)
-
-// (ඔබේ සෙසු message handling logic මෙතැනට දමන්න...)
-
-// (ඔබේ සෙසු message handling කොටස මෙහි තබන්න)
 client.on('message', async (message) => {
     if (message.fromMe) return;
 
