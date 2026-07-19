@@ -1,10 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const readline = require('readline');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+// ඔබගේ WhatsApp අංකය මෙතැනට ඇතුළත් කරන්න (උදා: 94742381405)
+const MY_PHONE_NUMBER = '947XXXXXXXX'; 
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
@@ -26,24 +23,19 @@ function canReply(userId) {
 
 client.on('ready', () => console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!'));
 
-// Pairing Code ජනනය කරන කොටස
-async function initiatePairing() {
-    rl.question('📱 You whatsapp No (උදා: 947XXXXXXXX): ', async (number) => {
-        console.log('⌛ Pairing Code එක ජනනය වෙමින් පවතී, කරුණාකර රැඳී සිටින්න...');
-        await client.initialize();
-        
-        try {
-            const pairingCode = await client.requestPairingCode(number);
-            console.log('================================================');
-            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-            console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
-            console.log('================================================');
-        } catch (err) {
-            console.error('❌ දෝෂයක් සිදුවිය: ', err);
-        }
-        rl.close();
-    });
-}
+// Pairing Code ජනනය කිරීම
+client.initialize().then(async () => {
+    console.log('🚀 බොට් ආරම්භ විය... Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
+    try {
+        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+        console.log('================================================');
+        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+        console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
+        console.log('================================================');
+    } catch (err) {
+        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
+    }
+});
 
 client.on('message', async (message) => {
     if (message.fromMe) return;
@@ -99,5 +91,3 @@ client.on('message', async (message) => {
     await message.reply('AI BOT -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී.... ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...');
     userCooldowns.set(userId, Date.now());
 });
-
-initiatePairing();
