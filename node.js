@@ -1,4 +1,10 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const readline = require('readline');
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
@@ -20,9 +26,24 @@ function canReply(userId) {
 
 client.on('ready', () => console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!'));
 
-client.on('code', (code) => {
-    console.log(`🔢 Pairing Code: ${code}`);
-});
+// Pairing Code ජනනය කරන කොටස
+async function initiatePairing() {
+    rl.question('📱 You whatsapp No (උදා: 947XXXXXXXX): ', async (number) => {
+        console.log('⌛ Pairing Code එක ජනනය වෙමින් පවතී, කරුණාකර රැඳී සිටින්න...');
+        await client.initialize();
+        
+        try {
+            const pairingCode = await client.requestPairingCode(number);
+            console.log('================================================');
+            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+            console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
+            console.log('================================================');
+        } catch (err) {
+            console.error('❌ දෝෂයක් සිදුවිය: ', err);
+        }
+        rl.close();
+    });
+}
 
 client.on('message', async (message) => {
     if (message.fromMe) return;
@@ -30,7 +51,6 @@ client.on('message', async (message) => {
     const userId = message.from;
     const msg = message.body.toLowerCase().trim();
 
-    // 1. පලමු මැසේජ් එක (Welcome Message)
     if (msg === 'hi' || msg === 'hello' || msg === 'හායි' || msg === 'හෙලෝ') {
         if (!canReply(userId)) return;
         
@@ -39,7 +59,6 @@ client.on('message', async (message) => {
         return;
     }
 
-    // 2. Menu Reply (ප්‍රධාන මෙනුව)
     if (['menu', 'help', 'උදව්'].includes(msg)) {
         if (!canReply(userId)) return;
         
@@ -48,7 +67,6 @@ client.on('message', async (message) => {
         return;
     }
 
-    // 3. Numbered Replies
     if (['1', '2', '3', '4', '5', '6', '7'].includes(msg)) {
         if (!canReply(userId)) return;
 
@@ -77,10 +95,9 @@ client.on('message', async (message) => {
         return;
     }
 
-    // 4. Fallback Reply
     if (!canReply(userId)) return;
     await message.reply('AI BOT -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී.... ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...');
     userCooldowns.set(userId, Date.now());
 });
 
-client.initialize();
+initiatePairing();
