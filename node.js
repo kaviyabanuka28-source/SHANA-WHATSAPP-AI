@@ -1,20 +1,16 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// ඔබගේ WhatsApp අංකය මෙතැනට ඇතුළත් කරන්න (උදා: 94742381405)
+// ඔබගේ WhatsApp අංකය
 const MY_PHONE_NUMBER = '94742381405'; 
-
-const client = new Client({
-  const { Client, LocalAuth } = require('whatsapp-web.js');
-
-const MY_PHONE_NUMBER = '94742381405';
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     }
 });
+
 // Cooldown storage
 const userCooldowns = new Map();
 const COOLDOWN_TIME = 20 * 60 * 1000; // විනාඩි 20
@@ -29,18 +25,22 @@ client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// Pairing Code ජනනය කිරීම
-client.initialize().then(async () => {
+// Pairing Code ජනනය කිරීම - නිවැරදි ව්‍යුහය
+client.initialize().then(() => {
     console.log('🚀 බොට් ආරම්භ විය... Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
-    try {
-        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
-        console.log('================================================');
-        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-        console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
-        console.log('================================================');
-    } catch (err) {
-        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
-    }
+    
+    // වෙබ් අඩවිය පූරණය වීමට සුළු ප්‍රමාදයක්
+    setTimeout(async () => {
+        try {
+            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+            console.log('================================================');
+            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+            console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
+            console.log('================================================');
+        } catch (err) {
+            console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
+        }
+    }, 5000); 
 }).catch(err => {
     console.error('❌ දෝෂයක් සිදුවිය: ', err);
 });
