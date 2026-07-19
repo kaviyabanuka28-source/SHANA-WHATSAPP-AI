@@ -1,5 +1,16 @@
 [phases.setup]
-nixPkgs = ["chromium", "libnss3", "libatk-bridge2.0-0", "libgtk-3-0", "libgbm1"]
+nixPkgs = [
+    "nodejs_18",
+    "chromium",
+    "nss",
+    "nspr",
+    "atk",
+    "cups",
+    "libdrm",
+    "libxkbcommon",
+    "pango",
+    "cairo"
+]
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "1"
