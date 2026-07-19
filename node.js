@@ -1,5 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const readline = require('readline');
+
+// Railway Variables වලින් අංකය ලබා ගනී
+const MY_PHONE_NUMBER = process.env.WHATSAPP_NUMBER;
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -13,13 +15,8 @@ const client = new Client({
             '--no-zygote',
             '--single-process'
         ],
-        executablePath: '/usr/bin/chromium' // nixpacks.toml හි ඇති path එක හා සමාන විය යුතුය
+        executablePath: '/usr/bin/chromium'
     }
-});
-
-// මෙම කොටස ඉතා වැදගත් - Pairing code ලැබෙන තෙක් බලා සිටීම
-client.on('qr', () => {
-    console.log('QR Code generated - this bot requires pairing code!');
 });
 
 client.initialize();
@@ -28,25 +25,29 @@ client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// බොට් start වූ පසු අංකය ඇසීම
+// බොට් start වී තත්පර 15කින් අංකය භාවිතා කර Pairing Code ඉල්ලයි
 client.on('authenticated', () => {
     console.log('Authentication successful!');
 });
 
-// Pairing code ලබා ගැනීම
 setTimeout(async () => {
-    console.log('🚀 බොට් සූදානම්... අංකය ලබා දෙන්න.');
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question('WhatsApp අංකය (94742381405): ', async (number) => {
-        try {
-            const pairingCode = await client.requestPairingCode(number.trim());
-            console.log('🔢 Pairing Code: ' + pairingCode);
-        } catch (e) {
-            console.error('Pairing Error: ', e);
-        }
-        rl.close();
-    });
-}, 15000); // 15 seconds delay
+    if (!MY_PHONE_NUMBER) {
+        console.error('❌ දෝෂය: WHATSAPP_NUMBER නම් variable එකක් set කර නැත!');
+        return;
+    }
+    
+    try {
+        console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
+        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+        console.log('================================================');
+        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+        console.log('================================================');
+    } catch (e) {
+        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
+    }
+}, 15000);
+
+// (ඔබේ සෙසු message handling logic කොටස මෙතැනට දමන්න...)
 
 // (ඔබේ සෙසු message handling logic මෙතැනට දමන්න...)
 
