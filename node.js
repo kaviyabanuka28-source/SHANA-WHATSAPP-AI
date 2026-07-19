@@ -1,7 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
 // ඔබගේ WhatsApp අංකය මෙතැනට ඇතුළත් කරන්න (උදා: 94742381405)
-const MY_PHONE_NUMBER = '947XXXXXXXX'; 
+const MY_PHONE_NUMBER = '94742381405'; 
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
