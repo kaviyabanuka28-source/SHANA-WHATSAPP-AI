@@ -1,6 +1,5 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-
-const MY_PHONE_NUMBER = '94742381405';
+const readline = require('readline');
 
 const client = new Client({
     authStrategy: new LocalAuth(),
@@ -10,41 +9,46 @@ const client = new Client({
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
+            '--disable-gpu',
             '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
+            '--single-process'
         ],
-        // මෙම time out අගයන් එකතු කරන්න
-        timeout: 60000 
-    },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        executablePath: '/usr/bin/chromium' // nixpacks.toml හි ඇති path එක හා සමාන විය යුතුය
+    }
 });
+
+// මෙම කොටස ඉතා වැදගත් - Pairing code ලැබෙන තෙක් බලා සිටීම
+client.on('qr', () => {
+    console.log('QR Code generated - this bot requires pairing code!');
+});
+
+client.initialize();
 
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// Pairing Code ලබා ගැනීමේ ක්‍රියාවලිය
-client.initialize().then(async () => {
-    console.log('🚀 බොට් ආරම්භ විය... තත්පර 20ක් රැඳී සිටින්න...');
-    
-    // Pairing code ඉල්ලීමට පෙර තත්පර 20ක ප්‍රමාදයක් (වෙබ් අඩවිය load වීමට)
-    await new Promise(resolve => setTimeout(resolve, 20000));
-    
-    try {
-        console.log('🔄 Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
-        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
-        console.log('================================================');
-        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-        console.log('================================================');
-    } catch (err) {
-        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
-    }
-}).catch(err => {
-    console.error('❌ බොට් ආරම්භයේ දෝෂයක්: ', err);
+// බොට් start වූ පසු අංකය ඇසීම
+client.on('authenticated', () => {
+    console.log('Authentication successful!');
 });
+
+// Pairing code ලබා ගැනීම
+setTimeout(async () => {
+    console.log('🚀 බොට් සූදානම්... අංකය ලබා දෙන්න.');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question('WhatsApp අංකය (947xxxxxxxxx): ', async (number) => {
+        try {
+            const pairingCode = await client.requestPairingCode(number.trim());
+            console.log('🔢 Pairing Code: ' + pairingCode);
+        } catch (e) {
+            console.error('Pairing Error: ', e);
+        }
+        rl.close();
+    });
+}, 15000); // 15 seconds delay
+
+// (ඔබේ සෙසු message handling logic මෙතැනට දමන්න...)
 
 // (ඔබේ සෙසු message handling කොටස මෙහි තබන්න)
 client.on('message', async (message) => {
