@@ -25,11 +25,10 @@ client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// Pairing Code ජනනය කිරීම - නිවැරදි ව්‍යුහය
+// Pairing Code ලබා ගැනීම සඳහා ප්‍රමාදයක් (delay) එකතු කිරීම
 client.initialize().then(() => {
-    console.log('🚀 බොට් ආරම්භ විය... Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
+    console.log('🚀 බොට් ආරම්භ විය... තත්පර 10කින් Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
     
-    // වෙබ් අඩවිය පූරණය වීමට සුළු ප්‍රමාදයක්
     setTimeout(async () => {
         try {
             const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
@@ -40,9 +39,9 @@ client.initialize().then(() => {
         } catch (err) {
             console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
         }
-    }, 5000); 
+    }, 10000); // 10 seconds delay
 }).catch(err => {
-    console.error('❌ දෝෂයක් සිදුවිය: ', err);
+    console.error('❌ බොට් ආරම්භයේ දෝෂයක්: ', err);
 });
 
 client.on('message', async (message) => {
