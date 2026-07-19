@@ -15,30 +15,38 @@ const client = new Client({
             '--no-zygote',
             '--single-process',
             '--disable-gpu'
-        ]
+        ],
+        // මෙම time out අගයන් එකතු කරන්න
+        timeout: 60000 
     },
-    // විශේෂයෙන්ම මෙම userAgent එක එක් කරන්න
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 });
+
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-client.initialize().then(() => {
-    console.log('🚀 බොට් ආරම්භ විය... තත්පර 10කින් Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
-    setTimeout(async () => {
-        try {
-            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
-            console.log('================================================');
-            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-            console.log('================================================');
-        } catch (err) {
-            console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
-        }
-    }, 10000);
+// Pairing Code ලබා ගැනීමේ ක්‍රියාවලිය
+client.initialize().then(async () => {
+    console.log('🚀 බොට් ආරම්භ විය... තත්පර 20ක් රැඳී සිටින්න...');
+    
+    // Pairing code ඉල්ලීමට පෙර තත්පර 20ක ප්‍රමාදයක් (වෙබ් අඩවිය load වීමට)
+    await new Promise(resolve => setTimeout(resolve, 20000));
+    
+    try {
+        console.log('🔄 Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
+        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+        console.log('================================================');
+        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+        console.log('================================================');
+    } catch (err) {
+        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
+    }
 }).catch(err => {
     console.error('❌ බොට් ආරම්භයේ දෝෂයක්: ', err);
 });
+
+// (ඔබේ සෙසු message handling කොටස මෙහි තබන්න)
 client.on('message', async (message) => {
     if (message.fromMe) return;
 
