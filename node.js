@@ -4,11 +4,12 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const MY_PHONE_NUMBER = '94742381405'; 
 
 const client = new Client({
+  const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
-  puppeteer: {
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
-}
+    puppeteer: {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu']
+    }
 });
 
 // Cooldown storage
