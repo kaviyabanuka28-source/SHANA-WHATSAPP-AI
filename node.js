@@ -21,16 +21,14 @@ client.initialize().then(() => {
             const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
             console.log('================================================');
             console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-            console.log('🔗 WhatsApp වෙත ගොස් "Link with phone number" තෝරා මෙය ඇතුළත් කරන්න.');
             console.log('================================================');
         } catch (err) {
             console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
         }
     }, 10000);
 }).catch(err => {
-    console.error('❌ දෝෂයක් සිදුවිය: ', err);
+    console.error('❌ බොට් ආරම්භයේ දෝෂයක්: ', err);
 });
-
 client.on('message', async (message) => {
     if (message.fromMe) return;
 
