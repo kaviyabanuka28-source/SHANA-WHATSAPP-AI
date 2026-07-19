@@ -37,7 +37,7 @@ client.on('authenticated', () => {
 setTimeout(async () => {
     console.log('🚀 බොට් සූදානම්... අංකය ලබා දෙන්න.');
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question('WhatsApp අංකය (947xxxxxxxxx): ', async (number) => {
+    rl.question('WhatsApp අංකය (94742381405): ', async (number) => {
         try {
             const pairingCode = await client.requestPairingCode(number.trim());
             console.log('🔢 Pairing Code: ' + pairingCode);
