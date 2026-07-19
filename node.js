@@ -3,7 +3,9 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const MY_PHONE_NUMBER = '94742381405';
 
 const client = new Client({
+    authStrategy: new LocalAuth(),
     puppeteer: {
+        headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -11,13 +13,12 @@ const client = new Client({
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', // සමහර විට මෙය අවශ්‍ය විය හැක
+            '--single-process',
             '--disable-gpu'
-        ],
-        headless: true
+        ]
     },
-    // තවද timeout වැඩි කරන්න
-    authTimeoutMs: 60000 
+    // විශේෂයෙන්ම මෙම userAgent එක එක් කරන්න
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
 });
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
