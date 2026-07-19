@@ -7,7 +7,8 @@ const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
     puppeteer: {
         headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        executablePath: '/usr/bin/chromium-browser', 
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--no-first-run", "--no-zygote", "--single-process"]
     }
 });
 
@@ -21,7 +22,9 @@ function canReply(userId) {
     return (Date.now() - lastReplyTime) > COOLDOWN_TIME;
 }
 
-client.on('ready', () => console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!'));
+client.on('ready', () => {
+    console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
+});
 
 // Pairing Code ජනනය කිරීම
 client.initialize().then(async () => {
@@ -35,6 +38,8 @@ client.initialize().then(async () => {
     } catch (err) {
         console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
     }
+}).catch(err => {
+    console.error('❌ දෝෂයක් සිදුවිය: ', err);
 });
 
 client.on('message', async (message) => {
