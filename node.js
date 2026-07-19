@@ -3,13 +3,22 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const MY_PHONE_NUMBER = '94742381405';
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "shana-bot" }),
     puppeteer: {
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    }
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', // සමහර විට මෙය අවශ්‍ය විය හැක
+            '--disable-gpu'
+        ],
+        headless: true
+    },
+    // තවද timeout වැඩි කරන්න
+    authTimeoutMs: 60000 
 });
-
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
