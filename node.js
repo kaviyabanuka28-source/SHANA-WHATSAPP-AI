@@ -52,7 +52,7 @@ setTimeout(async () => {
     } catch (e) {
         console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
     }
-}, 15000);
+}, 4000);
 
 client.on('message', async (message) => {
     if (message.fromMe) return;
