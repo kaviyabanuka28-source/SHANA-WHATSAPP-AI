@@ -1,35 +1,24 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// Railway Variables වලින් අංකය ලබා ගනී
 const MY_PHONE_NUMBER = process.env.WHATSAPP_NUMBER;
 
-// ඔබ ඉල්ලූ නව කොටස් මෙතැනට ඇතුළත් කර ඇත
-const userCooldowns = new Map(); // Cooldowns තබා ගැනීමට
-const COOLDOWN_TIME = 5000; // තත්පර 5ක ප්‍රමාදයක්
+const userCooldowns = new Map();
+const COOLDOWN_TIME = 5000;
 
 function canReply(userId) {
     const lastTime = userCooldowns.get(userId);
     if (lastTime && (Date.now() - lastTime) < COOLDOWN_TIME) {
-        return false; // තවම කාලය මදි
+        return false;
     }
-    return true; // පිළිතුරු දිය හැක
+    return true;
 }
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu'
-        ],
-        executablePath: '/usr/bin/chromium' // මෙය අනිවාර්යයෙන්ම එකතු කරන්න
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu'],
+        executablePath: '/usr/bin/chromium'
     },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 });
