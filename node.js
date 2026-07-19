@@ -5,9 +5,9 @@ const MY_PHONE_NUMBER = '94742381405';
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
-   puppeteer: {
+  puppeteer: {
     headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--no-first-run", "--no-zygote"]
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
 }
 });
 
