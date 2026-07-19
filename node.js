@@ -24,7 +24,17 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu'],
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage', 
+            '--disable-accelerated-2d-canvas', 
+            '--no-first-run', 
+            '--no-zygote', 
+            '--single-process', 
+            '--disable-gpu',
+            '--disable-extensions'
+        ],
         executablePath: '/usr/bin/chromium'
     },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -36,13 +46,12 @@ client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// බොට් start වී තත්පර 15කින් අංකය භාවිතා කර Pairing Code ඉල්ලයි
+// Pairing Code ලබාගැනීමේ කාලය තත්පර 40 දක්වා වැඩි කිරීම
 setTimeout(async () => {
     if (!MY_PHONE_NUMBER) {
         console.error('❌ දෝෂය: WHATSAPP_NUMBER නම් variable එකක් set කර නැත!');
         return;
     }
-    
     try {
         console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
         const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
@@ -52,7 +61,7 @@ setTimeout(async () => {
     } catch (e) {
         console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
     }
-}, 4000);
+}, 40000); 
 
 client.on('message', async (message) => {
     if (message.fromMe) return;
@@ -76,7 +85,6 @@ client.on('message', async (message) => {
 
     if (['1', '2', '3', '4', '5', '6', '7'].includes(msg)) {
         if (!canReply(userId)) return;
-
         let replyText = '';
         if (msg === '1') replyText = '💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗\n*1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...*\n\n*SHANA SERVICE __💯*\n\n💵💵 *මුදල් තැන්පත් කිරීම*💵💵\n✅ *Account Deposit*✅ *Account Withdraw*\n\n🔯 BOC: 94118758 (MINNERIYA - K.G LAKSHAN KAVISHKA KUMARA)\n✳️PEOPLE BANK: 006200150094114 (K.G.LAKSHAN KAVISHKA KUMARA)\n✳️ez cash: 0764104588 (LAKSHAN)\n✡️ Binanace: 1066282628 (LAKSHAN)\n🔯ipay: 0764104588 (Lakshan)\n✡️Dialog Finance PLC: 0010 2217 5776 (LAKSHAN KAVISHKA KUMARA)\n\n*❏ DEPOSIT - minute 2-5 😍*\n*❏ WITHDRAW - minute 10-30 😍*\n👉👉 *සැ.යු.* : ඔබ විසින් *REMARK* යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.\nතවද 1X BET , BET යන වචන කිසි සේත්ම භාවිතා නොකල යුතුය...\n\n⚠️️ඉහත ක්‍රම හරහා *DEPOSIT* කර SLIP එක හා ඔබේ *1XBET PLAYER ID* type එවන්න.';
         else if (msg === '2') replyText = '*❏ SHANA WITHDRAW ADDRESS ✺*\n\n_MINI Withdraw Rs 250/_\nපියවර 1: 1Xbet app එක open කර menu යන්න.\n* ඉට පසු උඩම ඇති setting අයිකන් එක ක්ලික් කරන්න\n* ✺ ඉට පසුව withdraw Icon එක තෝරන්න.\n➢ ඉට පසු ඔබට ගන්න ඔනි ගාන ගහන්න.\n❏ city: minneriya\n❏ street : Lakshan service (24/7)\n\nඑම පියවර සම්පූර්ණ කර එන කොඩ් එකේ Screenshot එකක් මට එවන්න ✅';
