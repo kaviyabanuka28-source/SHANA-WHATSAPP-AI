@@ -1,12 +1,3 @@
-{
-  "name": "shana-bot",
-  "version": "1.0.0",
-  "description": "WhatsApp Bot",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "whatsapp-web.js": "latest"
-  }
+"dependencies": {
+  "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#webpack-exbuild"
 }
