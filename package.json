@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "node.js",
   "dependencies": {
-    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#webpack-exbuild",
+    "whatsapp-web.js": "^1.26.0",
     "qrcode-terminal": "^0.12.0"
   },
   "scripts": {
