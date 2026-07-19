@@ -1,7 +1,6 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// ඔබගේ WhatsApp අංකය
-const MY_PHONE_NUMBER = '94742381405'; 
+const MY_PHONE_NUMBER = '94742381405';
 
 const client = new Client({
     authStrategy: new LocalAuth({ clientId: "shana-bot" }),
@@ -11,24 +10,12 @@ const client = new Client({
     }
 });
 
-// Cooldown storage
-const userCooldowns = new Map();
-const COOLDOWN_TIME = 20 * 60 * 1000; // විනාඩි 20
-
-function canReply(userId) {
-    const lastReplyTime = userCooldowns.get(userId);
-    if (!lastReplyTime) return true;
-    return (Date.now() - lastReplyTime) > COOLDOWN_TIME;
-}
-
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
 
-// Pairing Code ලබා ගැනීම සඳහා ප්‍රමාදයක් (delay) එකතු කිරීම
 client.initialize().then(() => {
     console.log('🚀 බොට් ආරම්භ විය... තත්පර 10කින් Pairing Code ඉල්ලීමට උත්සාහ කරයි...');
-    
     setTimeout(async () => {
         try {
             const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
@@ -39,9 +26,9 @@ client.initialize().then(() => {
         } catch (err) {
             console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂයක්: ', err);
         }
-    }, 10000); // 10 seconds delay
+    }, 10000);
 }).catch(err => {
-    console.error('❌ බොට් ආරම්භයේ දෝෂයක්: ', err);
+    console.error('❌ දෝෂයක් සිදුවිය: ', err);
 });
 
 client.on('message', async (message) => {
