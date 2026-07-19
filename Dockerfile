@@ -1,6 +1,8 @@
 FROM node:18-slim
-# Chromium සහ අවශ්‍ය ෆොන්ට්ස් ස්ථාපනය කරන්න
+
+# git සහ chromium අවශ්‍ය දේ ස්ථාපනය කිරීම
 RUN apt-get update && apt-get install -y \
+    git \
     chromium \
     fonts-liberation \
     libnss3 \
@@ -8,9 +10,12 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     --no-install-recommends
 
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
 CMD ["node", "index.js"]
