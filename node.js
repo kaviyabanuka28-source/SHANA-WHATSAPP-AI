@@ -3,7 +3,7 @@ const { execSync } = require('child_process');
 
 // ========== COOLDOWN (20 min) ==========
 const COOLDOWN_MS = 20 * 60 * 1000;
-const userStates = new Map(); // { state, lastReplyAt }
+const userStates = new Map();
 
 function canReply(userId) {
     const data = userStates.get(userId);
@@ -42,7 +42,7 @@ const chromiumPath = findChromiumPath();
 if (chromiumPath) console.log(`🔍 Chromium path: ${chromiumPath}`);
 else console.warn('⚠️ Chromium not found - will use system default');
 
-// ========== CLIENT (FIXED - pairWithPhoneNumber භාවිතා කර ඇත) ==========
+// ========== CLIENT (pairWithPhoneNumber ඉවත් කර ඇත - පහත requestPairingCode method එක භාවිතා කරන්නම්) ==========
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
@@ -59,12 +59,6 @@ const client = new Client({
             '--disable-background-networking',
         ],
         executablePath: chromiumPath,
-    },
-    // ✅ FIX: QR code වෙනුවට pairing code flow එක activate කරයි
-    pairWithPhoneNumber: {
-        phoneNumber: process.env.WHATSAPP_NUMBER, // e.g., "947xxxxxxxx" (රටේ කේතය + අංකය, + නැතුව)
-        showNotification: true, // දුරකථනයට notification එකක් එවයි
-        // intervalMs: 180000, // අවශ්‍යනම් interval එක වෙනස් කරන්න (default: 3 min)
     },
 });
 
@@ -303,19 +297,44 @@ async function handleMessage(message) {
     }
 }
 
-// ========== EVENTS (FIXED) ==========
+// ========== EVENTS (FIXED - pairWithPhoneNumber වෙනුවට QR event එකෙන් requestPairingCode call කරනවා) ==========
 
-// ✅ FIX: 'code' event එකෙන් pairing code එක ලැබේ (QR event එකෙන් නොවේ)
-client.on('code', (code) => {
-    console.log('================================================');
-    console.log(`🔢 Pairing Code: ${code}`);
-    console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
-    console.log('================================================');
-});
+let pairingCodeRequested = false;
 
-// QR event එක දැන් අවශ්‍ය නැහැ - pairWithPhoneNumber activate වූ විට QR එක fire වෙන්නේ නැහැ
-client.on('qr', (qr) => {
-    console.log('📱 QR code received (pairWithPhoneNumber mode active - ignoring QR)');
+client.on('qr', async (qr) => {
+    // QR code එක console එකට print කරන්න (අවශ්‍යනම්)
+    console.log('📱 QR Code received from WhatsApp Web');
+    
+    // ✅ FIX: QR එක ලැබුනු පසුව පමණක් pairing code request කරන්න (වරක් පමණක්)
+    if (!pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
+        pairingCodeRequested = true;
+        console.log(`🔑 Requesting pairing code for ${process.env.WHATSAPP_NUMBER}...`);
+        
+        try {
+            // ✅ FIX: setTimeout 3s එකක් දාලා page එක fully ready වෙනකම් wait කරන්න
+            setTimeout(async () => {
+                try {
+                    const pairingCode = await client.requestPairingCode(
+                        process.env.WHATSAPP_NUMBER,
+                        true  // showNotification: true - දුරකථනයට notification එකක් එවයි
+                    );
+                    console.log('================================================');
+                    console.log(`🔢✅ Pairing Code: ${pairingCode}`);
+                    console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
+                    console.log('================================================');
+                } catch (err) {
+                    console.error('❌ Pairing code error:', err.message || err);
+                    // නැවත උත්සහ කිරීමට flag එක reset කරන්න
+                    pairingCodeRequested = false;
+                }
+            }, 3000); // 3 second delay - page එක සම්පූර්ණයෙන් load වෙන්න
+        } catch (e) {
+            console.error('❌ Error:', e.message || e);
+            pairingCodeRequested = false;
+        }
+    } else if (!process.env.WHATSAPP_NUMBER) {
+        console.log('⚠️ WHATSAPP_NUMBER environment variable එක set කරලා නැහැ!');
+    }
 });
 
 client.on('authenticated', () => {
@@ -325,10 +344,12 @@ client.on('authenticated', () => {
 client.on('ready', () => {
     console.log('\n✅✅✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅✅✅');
     console.log('📌 Now anyone who messages this number will get auto-replies!\n');
+    // pairingCodeRequested reset කරන්න අවශ්‍ය නැහැ - දැනටමත් authenticated
 });
 
 client.on('disconnected', (reason) => {
     console.log(`⚠️ Disconnected: ${reason || 'unknown'}`);
+    pairingCodeRequested = false; // reconnect වූ විට නැවත try කිරීමට
     console.log('🔄 Reconnecting in 5 seconds...');
     setTimeout(() => {
         client.initialize();
@@ -337,6 +358,7 @@ client.on('disconnected', (reason) => {
 
 client.on('auth_failure', (msg) => {
     console.error('❌ Auth failure:', msg);
+    // pairingCodeRequested = false; // අවශ්‍යනම් uncomment කරන්න
 });
 
 // ========== MESSAGE HANDLERS ==========
