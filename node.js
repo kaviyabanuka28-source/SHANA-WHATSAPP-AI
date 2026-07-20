@@ -24,21 +24,17 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-dev-shm-usage',
-            '--disable-gpu'
-        ]
-        // executablePath එක මෙතනින් සම්පූර්ණයෙන්ම ඉවත් කරන්න
-    },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+    }
 });
-client.initialize();
 
+// මේ කෑල්ල අනිවාර්යයෙන්ම දාන්න (WhatsApp web updates නිසා එන ගැටලුවට විසඳුම)
 client.on('ready', () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
 });
+
+// මේක පල්ලෙහාට දාන්න
+client.initialize();
 
 // Pairing Code ලබාගැනීමේ කාලය තත්පර 40 දක්වා වැඩි කිරීම
 setTimeout(async () => {
