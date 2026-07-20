@@ -1,12 +1,12 @@
 {
-  "name": "shana-whatsapp-ai",
+  "name": "shana-ai-bot",
   "version": "1.0.0",
   "main": "index.js",
-  "dependencies": {
-    "whatsapp-web.js": "1.26.0",
-    "puppeteer": "22.0.0"
+  "scripts": {
+    "start": "node index.js"
   },
-  "engines": {
-    "node": "18.x"
+  "dependencies": {
+    "whatsapp-web.js": "^1.33.2",
+    "puppeteer": "^23.0.0"
   }
 }
