@@ -1,38 +1,157 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const { execSync } = require('child_process');
+const path = require('path');
 
+// ========== COOLDOWN SYSTEM ==========
+const userCooldowns = new Map();
+const COOLDOWN_MS = 1000;
+
+function canReply(userId) {
+    const lastReply = userCooldowns.get(userId);
+    if (lastReply && (Date.now() - lastReply) < COOLDOWN_MS) {
+        return false;
+    }
+    return true;
+}
+
+// ========== CHROMIUM PATH DETECTION (nixpacks) ==========
+function findChromiumPath() {
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        const p = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (p !== 'chromium' && p !== 'chromium-browser') return p;
+    }
+    // Try to find chromium in PATH (handles nixpacks, NixOS, etc.)
+    try {
+        const result = execSync(
+            'which chromium 2>/dev/null || which chromium-browser 2>/dev/null || which google-chrome-stable 2>/dev/null || which google-chrome 2>/dev/null || echo ""'
+        ).toString().trim();
+        if (result) return result;
+    } catch (_) {}
+    // Common nixpacks/NixOS fallback paths
+    const candidates = [
+        '/home/user/.nix-profile/bin/chromium',
+        '/run/current-system/sw/bin/chromium',
+        '/nix/var/nix/profiles/default/bin/chromium',
+    ];
+    for (const p of candidates) {
+        try {
+            require('fs').accessSync(p);
+            return p;
+        } catch (_) {}
+    }
+    return undefined;
+}
+
+const chromiumPath = findChromiumPath();
+if (chromiumPath) {
+    console.log(`🔍 Chromium path: ${chromiumPath}`);
+} else {
+    console.warn('⚠️ Chromium not found via which or fallback paths — puppeteer may fail');
+}
+
+// ========== CLIENT CONFIG ==========
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        dataPath: './.wwebjs_auth',
+    }),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-background-networking',
+        ],
+        executablePath: chromiumPath,
     },
     webVersionCache: {
         type: 'remote',
         remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1014553472.html',
+    },
+});
+
+// ========== PAIRING CODE STATE ==========
+let pairingCodeRequested = false;
+
+// ========== EVENT: QR / PAIRING CODE ==========
+// This fires when a QR code is needed (no valid session found)
+client.on('qr', async (qr) => {
+    console.log('📱 QR code received — attempting pairing code instead...');
+
+    if (!pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
+        pairingCodeRequested = true;
+        try {
+            const pairingCode = await client.requestPairingCode(
+                process.env.WHATSAPP_NUMBER,
+                true  // showNotification: true — shows a notification on the phone
+            );
+            console.log('================================================');
+            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+            console.log('📱 WhatsApp එකෙහි → Linked Devices → Link with Phone Number');
+            console.log('================================================');
+        } catch (e) {
+            console.error('❌ Pairing Code දෝෂය: ', e.message || e);
+            pairingCodeRequested = false; // Allow retry
+        }
     }
 });
 
+// ========== EVENT: CODE (alternative pairing code event) ==========
+client.on('code', (code) => {
+    console.log('================================================');
+    console.log(`🔢 ඔබේ Pairing Code එක: ${code}`);
+    console.log('📱 WhatsApp එකෙහි → Linked Devices → Link with Phone Number');
+    console.log('================================================');
+});
+
+// ========== EVENT: AUTHENTICATED ==========
+client.on('authenticated', () => {
+    console.log('🔐 සත්‍යාපනය සාර්ථකයි!');
+});
+
+// ========== EVENT: READY ==========
 client.on('ready', async () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
-    try {
-        // Pairing code ලබා ගැනීම
-        const pairingCode = await client.requestPairingCode(process.env.WHATSAPP_NUMBER);
-        console.log('================================================');
-        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-        console.log('================================================');
-    } catch (e) {
-        console.error('❌ Pairing Code දෝෂය: ', e);
-    }
+    // Reset flag so if session is later lost, we can re-pair
+    pairingCodeRequested = false;
 });
 
+// ========== EVENT: DISCONNECTED ==========
+client.on('disconnected', (reason) => {
+    console.log(`⚠️ බොට් විසන්ධි විය: ${reason || 'unknown reason'}`);
+    pairingCodeRequested = false; // Allow re-pairing next time
+    // Auto-reconnect after 5 seconds
+    setTimeout(() => {
+        console.log('🔄 නැවත සම්බන්ධ වීමට උත්සහ කරයි...');
+        client.initialize();
+    }, 5000);
+});
+
+// ========== EVENT: AUTH_FAILURE ==========
+client.on('auth_failure', (msg) => {
+    console.error('❌ සත්‍යාපන අසාර්ථකයි:', msg);
+    pairingCodeRequested = false;
+});
+
+// ========== INITIALIZE ==========
+console.log('🚀 බොට් ආරම්භ වේ...');
 client.initialize();
 
+// ========== MESSAGE HANDLER ==========
+// NOTE: message handler is registered AFTER initialize() but this is OK
+// because whatsapp-web.js queues events internally
 client.on('message', async (message) => {
     if (message.fromMe) return;
 
     const userId = message.from;
     const msg = message.body.toLowerCase().trim();
 
+    // ----- Greeting -----
     if (msg === 'hi' || msg === 'hello' || msg === 'හායි' || msg === 'හෙලෝ') {
         if (!canReply(userId)) return;
         await message.reply('🤖 SHANA AI BOT SYSTEM 🕹️\n-----------------------------\nHI සුබ දවසක් සර්,මිස් 😚\n\nඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!');
@@ -40,6 +159,7 @@ client.on('message', async (message) => {
         return;
     }
 
+    // ----- Menu / Help -----
     if (['menu', 'help', 'උදව්'].includes(msg)) {
         if (!canReply(userId)) return;
         await message.reply('AI BOT -\n📜 SHANA All SERVICE \n\n1. SHANA 1XBET DEPOSIT තොරතුරු ✅\n2. SHANA 1XBET WITHDRAW තොරතුරු ✅\n3. SHANA 1XBET VIP PROMO CODE තොරතුරු ✅\n4. WEB SITE & SOFTWARE සාදාගැනිමට ✅\n5. SOCAL MEDIA BOOST ( All plate Form ) ✅\n6. AVIATOR HIGH ODD අනලයිසින් ඉගෙන ගැනිමටනම් ✅\n7. Whatsapp Ai Auto Replay Bot සාදාගැනිමටනම් ✅\n\nකරුණාකරලා ඔබට අවශ්ශය සෙවාව අංකය ලබාදෙන්න!..... \n\nSOFTWARE DEVELOPR SHANA 🐛');
@@ -47,6 +167,7 @@ client.on('message', async (message) => {
         return;
     }
 
+    // ----- Number options (1-7) -----
     if (['1', '2', '3', '4', '5', '6', '7'].includes(msg)) {
         if (!canReply(userId)) return;
         let replyText = '';
@@ -62,6 +183,7 @@ client.on('message', async (message) => {
         return;
     }
 
+    // ----- Default reply -----
     if (!canReply(userId)) return;
     await message.reply('AI BOT -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී.... ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...');
     userCooldowns.set(userId, Date.now());
