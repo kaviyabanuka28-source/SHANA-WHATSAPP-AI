@@ -5,12 +5,14 @@
 ===========================================================
 */
 
+// වෙනස් කළ යුතු තැන
 const { 
     default: makeWASocket, 
     DisconnectReason, 
     useMultiFileAuthState,
     fetchLatestWaWebVersion,
-    makeCacheableSignalKeyStore
+    makeCacheableSignalKeyStore,
+    Browsers // මෙය අලුතින් එක් කරන්න
 } = require('@whiskeysockets/baileys');
 
 const { Boom } = require('@hapi/boom');
@@ -137,11 +139,7 @@ SOFTWARE DEVELOPR SHANA 🐛`,
 
     // ── User Input "1" → Deposit Info ──
     OPTION_1: `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗
- *1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...* 
-
- *SHANA SERVICE __💯* 
-
-    💵💵 *මුදල් තැන්පත් කිරීම*💵💵
+ *1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...* *SHANA SERVICE __💯* 💵💵 *මුදල් තැන්පත් කිරීම*💵💵
 ✅ *Account Deposit*✅ *Account Withdraw*
 
 🔯 BOC 
@@ -169,15 +167,11 @@ SOFTWARE DEVELOPR SHANA 🐛`,
 ✡️0010 2217 5776
 ✡️ LAKSHAN KAVISHKA KUMARA
 
- *❏ DEPOSIT - minute 2-5 😍* 
- *❏ WITHDRAW - minute 10-30 😍* 
-👉👉 *සැ.යු.* : ඔබ විසින් *REMARK* යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.
+ *❏ DEPOSIT - minute 2-5 😍* *❏ WITHDRAW - minute 10-30 😍* 👉👉 *සැ.යු.* : ඔබ විසින් *REMARK* යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.
 තවද 1X BET   , BET යන වචන කිසි සේත්ම භාවිතා නොකල යුතුය...
 
-⚠️️ඉහත ක්‍රම හරහා *DEPOSIT*  කර 
- SLIP* එක හා ඔබේ *1XBET PLAYER ID* *type එවන්න* 
-
-👉සැ.යු. : අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.
+⚠️️ඉහත ක්‍රම හරහා *DEPOSIT* කර 
+ SLIP* එක හා ඔබේ *1XBET PLAYER ID* *type එවන්න* 👉සැ.යු. : අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.
 
 එසේ නොහැකි නම් පණිවිඩයක් එවීමට කාරුණිකවන්න .
 
@@ -189,7 +183,7 @@ SOFTWARE DEVELOPR SHANA 🐛`,
 
  
 
- _MINI Withdraw  Rs 250-/_ 
+ _MINI Withdraw  Rs 250/_ 
 පියවර 1 
 * මුලින්ම 1Xbet app එක open කරන්න ඉට පසු menu යන්න. 
  * *ඉට පසු උඩම ඇති setting  අයිකන් එකක් එක ක්ලික් කරන්න*
@@ -203,9 +197,7 @@ SOFTWARE DEVELOPR SHANA 🐛`,
 
 පුරවගන්න ඉන් පසු ඔබට ඔබගේ gamil එකක් හො phone නම්බ එකක් ඇඩ් කරලා තියේනවානම් කොඩ් එකක් එයි එක දිලා කන්පොම් කරන්න.
 
- *➢ ඉන් පසුව ඇප් එකේන් බැක් වී ආපාසු ඇප් එකට ලොග් වී විත්‍රොල් තැනට යන්න.* 
-
-➢ ඉට පඩු විත්‍රොල් රේපුස්ට කියලා බටන් එකක් ඇති එක ඔබන්න.
+ *➢ ඉන් පසුව ඇප් එකේන් බැක් වී ආපාසු ඇප් එකට ලොග් වී විත්‍රොල් තැනට යන්න.* ➢ ඉට පඩු විත්‍රොල් රේපුස්ට කියලා බටන් එකක් ඇති එක ඔබන්න.
 
 ➢ ඉන් පසුව ඉංග්‍රිසි වචන සහිතව නිල්පාටින් වචන වගයක් ඇවිත් ඇති එහි ඇති ගෙට් කොඩ් කියලා එකක් අන්න එක ඔබන්න.
 
@@ -294,13 +286,19 @@ async function startBot() {
                     creds: state.creds,
                     keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
                 },
-                printQRInTerminal: true,
-                browser: Browsers.ubuntu('Chrome'),
+                // මෙතන 'Browsers' නිවැරදිව භාවිතය
+                browser: Browsers.macOS('Desktop'), 
                 logger: pino({ level: 'silent' }),
                 markOnlineOnConnect: true,
                 syncFullHistory: false,
                 generateHighQualityLinkPreview: false,
             });
+
+            // මෙය පසුව එකතු කරන්න (QR වෙනුවට Pair Code සඳහා)
+            if (CONFIG.PAIR_NUMBER && !sock.authState.creds.registered) {
+                const code = await sock.requestPairingCode(CONFIG.PAIR_NUMBER);
+                console.log(`🔑 PAIR CODE: ${code}`);
+            }
 
             // ── Save credentials on update ──
             sock.ev.on('creds.update', saveCreds);
@@ -335,26 +333,6 @@ async function startBot() {
                     } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                         console.log('[FATAL] උපරිම reconnect උත්සහයන් අවසන්. Bot එක restart වේ.');
                         process.exit(1);
-                    }
-                }
-
-                // ── Handle Pairing Code ──
-                if (connection === 'connecting' && !sock.authState.creds.registered) {
-                    if (CONFIG.PAIR_NUMBER) {
-                        try {
-                            const code = await sock.requestPairingCode(CONFIG.PAIR_NUMBER);
-                            console.log('');
-                            console.log('='.repeat(50));
-                            console.log(`  📱 PAIR CODE එක පහතින් දක්වා ඇත:`);
-                            console.log(`  🔑 ${code}`);
-                            console.log('');
-                            console.log(`  WhatsApp එකේ → Linked Devices → Link with Phone Number`);
-                            console.log('='.repeat(50));
-                        } catch (err) {
-                            console.error('[PAIR ERROR] Pair code generation error:', err.message);
-                        }
-                    } else {
-                        console.warn('[WARN] PAIR_NUMBER env variable එක set කර නැත. QR code scan කරන්න.');
                     }
                 }
             });
