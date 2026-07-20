@@ -44,8 +44,8 @@ client.on('ready', async () => {
         try {
             console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
             
-            // මේ පේළිය මෙහෙම වෙනස් කරන්න (mobile: true කියන එක එකතු කරන්න)
-            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER, true); 
+            // මේ පේළිය මෙහෙම වෙනස් කරන්න (mobile: true කියන එක එකතු ක
+const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER, true);
             
             console.log('================================================');
             console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
