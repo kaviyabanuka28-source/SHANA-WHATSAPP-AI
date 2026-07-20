@@ -14,4 +14,4 @@ nixPkgs = [
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "1"
-# PUPPETEER_EXECUTABLE_PATH එක ඉවත් කරන්න
+# PUPPETEER_EXECUTABLE_PATH ඉවත් කරන්න
