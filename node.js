@@ -1,30 +1,10 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const fs = require('fs');
-const path = require('path');
-
-// පැරණි session එක මකා දැමීම (සෑම restart එකකදීම අලුතින් Pair කිරීමට)
-const sessionPath = path.join(__dirname, '.wwebjs_auth');
-if (fs.existsSync(sessionPath)) {
-    fs.rmSync(sessionPath, { recursive: true, force: true });
-}
-
-const MY_PHONE_NUMBER = process.env.WHATSAPP_NUMBER;
-const userCooldowns = new Map();
-const COOLDOWN_TIME = 5000;
-
-function canReply(userId) {
-    const lastTime = userCooldowns.get(userId);
-    if (lastTime && (Date.now() - lastTime) < COOLDOWN_TIME) {
-        return false;
-    }
-    return true;
-}
 
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     },
     webVersionCache: {
         type: 'remote',
@@ -34,23 +14,15 @@ const client = new Client({
 
 client.on('ready', async () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
-    
-    setTimeout(async () => {
-        try {
-            console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
-            
-            // මේ පේළිය මෙහෙම වෙනස් කරන්න (mobile: true කියන එක එකතු ක
-const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER, true);
-            
-            console.log('================================================');
-            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-            console.log('================================================');
-        } catch (e) {
-            console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
-            // වැරදුනොත් ආයෙත් එකපාරක් try කරන්න කියල log එකක් දාමු
-            console.log('⚠️ කරුණාකර නැවත උත්සාහ කරන්න...');
-        }
-    }, 5000); 
+    try {
+        // Pairing code ලබා ගැනීම
+        const pairingCode = await client.requestPairingCode(process.env.WHATSAPP_NUMBER);
+        console.log('================================================');
+        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+        console.log('================================================');
+    } catch (e) {
+        console.error('❌ Pairing Code දෝෂය: ', e);
+    }
 });
 
 client.initialize();
