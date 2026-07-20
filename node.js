@@ -1,51 +1,142 @@
-const {
-    makeWASocket,
+/*
+===========================================================
+  SHANA AI WHATSAPP BOT - 100% Auto Reply System
+  Pair Code Connection | 20-min Cooldown | Railway 24/7
+===========================================================
+*/
+
+const { 
+    default: makeWASocket, 
+    DisconnectReason, 
     useMultiFileAuthState,
-    DisconnectReason,
-    fetchLatestBaileysVersion,
+    fetchLatestWaWebVersion,
     makeCacheableSignalKeyStore
 } = require('@whiskeysockets/baileys');
+
 const { Boom } = require('@hapi/boom');
 const pino = require('pino');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
 // ============================================
 // CONFIGURATION
 // ============================================
-const BOT_NUMBER = process.env.BOT_NUMBER || ''; // Your WhatsApp number with country code (e.g., 9476XXXXXXX)
-const COOLDOWN_MS = 20 * 60 * 1000; // 20 minutes
-const AUTH_DIR = 'auth_info';
-const LOG_LEVEL = process.env.LOG_LEVEL || 'silent';
+const CONFIG = {
+    // ඔබගේ WhatsApp Number (Country Code එකත් එක්ක, + ලකුණ නැතුව)
+    // Example: 947XXXXXXXX (Sri Lanka)
+    PAIR_NUMBER: process.env.PAIR_NUMBER || '', // Railway මත env variable එකක් විදිහට දෙන්න
+    
+    // Bot name
+    BOT_NAME: 'SHANA',
+    
+    // Auth folder path
+    AUTH_DIR: path.join(__dirname, 'auth_info_baileys'),
+    
+    // Cooldown in minutes
+    COOLDOWN_MINUTES: 20,
+    COOLDOWN_MS: 20 * 60 * 1000,
+    
+    // Port for web server (Railway required)
+    PORT: process.env.PORT || 3000,
+    
+    // Railway sleep prevention
+    RAILWAY_URL: process.env.RAILWAY_URL || '', // Your Railway public URL
+    KEEP_ALIVE_INTERVAL: 10 * 60 * 1000, // 10 minutes
+};
 
 // ============================================
-// EXACT RESPONSE TEMPLATES (යවන ලද පරිදිම)
+// COOLDOWN MANAGER (In-Memory)
 // ============================================
+class CooldownManager {
+    constructor() {
+        this.cooldowns = new Map(); // Map<userJid, timestamp>
+    }
+    
+    /**
+     * Check if user is in cooldown
+     */
+    isCooldown(userJid) {
+        const lastReply = this.cooldowns.get(userJid);
+        if (!lastReply) return false;
+        
+        const elapsed = Date.now() - lastReply;
+        const remaining = CONFIG.COOLDOWN_MS - elapsed;
+        
+        if (remaining <= 0) {
+            this.cooldowns.delete(userJid);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Get remaining cooldown time in minutes
+     */
+    getRemainingMinutes(userJid) {
+        const lastReply = this.cooldowns.get(userJid);
+        if (!lastReply) return 0;
+        
+        const elapsed = Date.now() - lastReply;
+        const remaining = CONFIG.COOLDOWN_MS - elapsed;
+        
+        return Math.ceil(remaining / 60000);
+    }
+    
+    /**
+     * Set cooldown for user
+     */
+    setCooldown(userJid) {
+        this.cooldowns.set(userJid, Date.now());
+        console.log(`[COOLDOWN] Set for ${userJid} - ${CONFIG.COOLDOWN_MINUTES} min`);
+    }
+    
+    /**
+     * Format cooldown message
+     */
+    formatCooldownMessage(userJid) {
+        const remaining = this.getRemainingMinutes(userJid);
+        return `⏳ කරුණාකර තව විනාඩි ${remaining}ක් බලා සිටින්න...`;
+    }
+}
 
-const WELCOME_MESSAGE = `🐾 SHANA AI BOT SYSTEM 🕹️
+// Initialize cooldown manager
+const cooldown = new CooldownManager();
+
+// ============================================
+// AUTO-REPLY MESSAGES (Exact as requested)
+// ============================================
+const MESSAGES = {
+    // ── Welcome Message (එක පාර reply වෙන්න) ──
+    WELCOME: `SHANA AI BOT SYSTEM 🕹️
 -----------------------------
 HI සුබ දවසක් සර්,මිස් 😚
 
-ඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!`;
+ඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!
 
-const SERVICE_MENU = `📜 SHANA All SERVICE 
+SHANA AI - ONLINE ✅`,
+
+    // ── Menu (Service List) ──
+    MENU: `📜 SHANA All SERVICE
 
 1. SHANA 1XBET DEPOSIT තොරතුරු ✅
 2. SHANA 1XBET WITHDRAW තොරතුරු ✅
 3. SHANA 1XBET VIP PROMO CODE තොරතුරු ✅
 4. WEB SITE & SOFTWARE සාදාගැනිමට ✅
-5. SOCAL MRDIA BOOST ( All plate Fom ) 
+5. SOCAL MRDIA BOOST ( All plate Fom )
 5. SHANA CONTACTS කරගැනිමට ✅
 6. AVIATOR HIGH ODD අනලයිසින් ඉගෙන ගැනිමටනම් ✅
-7.Whatsapp Ai Auto Replay Bot සාදාගැනිමටනම් ✅
+7. Whatsapp Ai Auto Replay Bot සාදාගැනිමටනම් ✅
 
-කරුණාකරලා ඔබට අවශ්ශය සෙවාව උඩ Menu එකේ ඇත්නම් එම අංකය ලාබාදෙන්න!..... 
+කරුණාකරලා ඔබට අවශ්ශය සෙවාව උඩ Menu එකේ ඇත්නම් එම අංකය ලාබාදෙන්න!.....
 
-ඔබට වෙනත් කරුණක් දැන්විමට අවශ්ශයනම් පහලින් සදහන් කරන්න මම එය ඉතාමත් ඉක්මනට SHANA වේත දැන්වීමට සලස්වන්නම් 
+ඔබට වෙනත් කරුණක් දැන්විමට අවශ්ශයනම් පහලින් සදහන් කරන්න මම එය ඉතාමත් ඉක්මනට SHANA වේත දැන්වීමට සලස්වන්නම්
 --------------------------------
-SOFTWARE DEVELOPR SHANA 🐛`;
+SOFTWARE DEVELOPR SHANA 🐛`,
 
-const OPTION_1_DEPOSIT = `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗
+    // ── User Input "1" → Deposit Info ──
+    OPTION_1: `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗
  *1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...* 
 
  *SHANA SERVICE __💯* 
@@ -90,9 +181,10 @@ const OPTION_1_DEPOSIT = `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰�
 
 එසේ නොහැකි නම් පණිවිඩයක් එවීමට කාරුණිකවන්න .
 
-✺ තෙවනපාර්ශවීය සල්ලි දැමිම් බාරගනු නොලැබේ ❌`;
+✺ තෙවනපාර්ශවීය සල්ලි දැමිම් බාරගනු නොලැබේ ❌`,
 
-const OPTION_2_WITHDRAW = `*❏ SHANA WITHDRAW  ADDRESS ✺*
+    // ── User Input "2" → Withdraw Info ──
+    OPTION_2: `*❏ SHANA WITHDRAW  ADDRESS ✺*
 
 
  
@@ -119,307 +211,349 @@ const OPTION_2_WITHDRAW = `*❏ SHANA WITHDRAW  ADDRESS ✺*
 
 ➢ එක ඔබවුවට පසුව එනවා කොඩ් එකක් අන්න එකි ස්ක්‍රින් ශොට් එකක් ගහලා ok කරලා මට එවන්න .
 
-එච්චරයි ✅`;
+එච්චරයි ✅`,
 
-const OPTION_3_PROMO = `VIP 1XBET PROMO CODE ඔයාල්ත් දැන්ම රෙජිස්ට වේන්න!...
+    // ── User Input "3" → VIP Promo Code ──
+    OPTION_3: `VIP 1XBET PROMO CODE ඔයාල්ත් දැන්ම රෙජිස්ට වේන්න!...
 
 Lashan1x
 👆👆👆👆
 LOST නොවී ගෙමක් ගහන්න කැමති අය දැන්ම ගිහින් 1XBET ACCOUNT එකක් හාදාගන්න
-200% DEPOSIT BONUS ✅`;
+200% DEPOSIT BONUS ✅`,
 
-const OPTION_4_WEBSITE = `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....
-🤝🤝🤝🤝🤝🤝🤝🤝`;
+    // ── User Input "4" → Website & Software ──
+    OPTION_4: `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....
+🤝🤝🤝🤝🤝🤝🤝🤝`,
 
-const OPTION_5_SOCIAL = `0758862130/0742381405/0703557568
-Call , Mg 24/7 Ok ✅`;
+    // ── User Input "5" → Social Media Boost / SHANA Contacts ──
+    OPTION_5: `0758862130/0742381405/0703557568
+Call , Mg 24/7 Ok ✅`,
 
-const OPTION_6_AVIATOR = `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....
-🤝🤝🤝🤝🤝🤝🤝🤝`;
+    // ── User Input "6" → Aviator Analysis ──
+    OPTION_6: `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....
+🤝🤝🤝🤝🤝🤝🤝🤝`,
 
-const OPTION_7_BOT = `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
+    // ── User Input "7" → WhatsApp Auto Reply Bot ──
+    OPTION_7: `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`,
 
-const WAITING_RESPONSE = `AI BOT -
+    // ── Invalid Input / Non-number message ──
+    INVALID_INPUT: `AI BOT -
 මතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! 
-ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
+ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`
+};
 
 // ============================================
-// USER STATE MANAGEMENT
+// EXPRESS WEB SERVER (Railway Keep-Alive)
 // ============================================
-const userStates = new Map();
+const app = express();
 
-function getUserState(jid) {
-    if (!userStates.has(jid)) {
-        userStates.set(jid, {
-            state: 'NEW',          // NEW -> WELCOME_SENT -> MENU_SENT
-            lastWelcomeTime: 0,
-            lastActivity: 0
-        });
-    }
-    return userStates.get(jid);
-}
+app.get('/', (req, res) => {
+    res.json({
+        status: 'online',
+        bot: CONFIG.BOT_NAME,
+        uptime: process.uptime(),
+        time: new Date().toISOString()
+    });
+});
+
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
 
 // ============================================
 // MAIN BOT FUNCTION
 // ============================================
 async function startBot() {
-    console.log('🤖 SHANA WhatsApp Bot ආරම්භ වේ...');
+    console.log('='.repeat(50));
+    console.log(`  ${CONFIG.BOT_NAME} AI WhatsApp Bot ආරම්භ වේ...`);
+    console.log('='.repeat(50));
 
-    // Create auth directory if not exists
-    if (!fs.existsSync(AUTH_DIR)) {
-        fs.mkdirSync(AUTH_DIR, { recursive: true });
-    }
+    let sock = null;
+    let reconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 50;
 
-    // Load auth state
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-
-    // Get latest Baileys version
-    const { version, isLatest } = await fetchLatestBaileysVersion();
-    console.log(`📱 Baileys version: ${version.join('.')}, isLatest: ${isLatest}`);
-
-    // Create socket
-    const sock = makeWASocket({
-        version,
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, pino({ level: LOG_LEVEL })),
-        },
-        printQRInTerminal: false,
-        logger: pino({ level: LOG_LEVEL }),
-        browser: ['Chrome (Linux)', '', ''],
-        markOnlineOnConnect: true,
-        generateHighQualityLink: true,
-        syncFullHistory: false,
-    });
-
-    // ============================================
-    // PAIR CODE GENERATION
-    // ============================================
-    if (!sock.authState.creds.registered) {
-        if (!BOT_NUMBER) {
-            console.error('❌ ERROR: BOT_NUMBER environment variable not set!');
-            console.error('⚠️  Please set BOT_NUMBER in Railway dashboard (e.g., 9476XXXXXXX)');
-            process.exit(1);
-        }
-
-        console.log('🔄 Requesting Pair Code...');
+    async function connect() {
         try {
-            let code = await sock.requestPairingCode(BOT_NUMBER);
-            code = code?.match(/.{1,4}/g)?.join('-') || code;
-            console.log('\n========================================');
-            console.log('🔐 PAIR CODE (12-digit code)');
-            console.log('========================================');
-            console.log(`📱 Number: ${BOT_NUMBER}`);
-            console.log(`🔑 Code: ${code}`);
-            console.log('========================================');
-            console.log('📌 WhatsApp > Linked Devices > Link a Device');
-            console.log('📌 Enter this code on your phone');
-            console.log('========================================\n');
-        } catch (err) {
-            console.error('❌ Pair code error:', err);
-        }
-    } else {
-        console.log('✅ Already registered. Bot starting...');
-    }
-
-    // ============================================
-    // CREDENTIALS UPDATE HANDLER
-    // ============================================
-    sock.ev.on('creds.update', saveCreds);
-
-    // ============================================
-    // CONNECTION UPDATE HANDLER
-    // ============================================
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
-
-        if (connection === 'open') {
-            console.log('✅ WhatsApp Bot සම්බන්ධ විය! 24/7 Online ✅');
-            console.log(`📱 Bot Number: ${sock.user?.id || 'Unknown'}`);
-        }
-
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error instanceof Boom)
-                ? lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut
-                : true;
-
-            console.log('⚠️ Connection closed.', 
-                lastDisconnect?.error?.message || '',
-                shouldReconnect ? '🔄 Reconnecting in 5 seconds...' : '❌ Logged out.');
-
-            if (shouldReconnect) {
-                setTimeout(() => startBot(), 5000);
-            } else {
-                console.log('❌ Bot logged out. Delete auth_info folder and restart.');
-                process.exit(1);
+            // Auth directory එක නැතිනම් හදන්න
+            if (!fs.existsSync(CONFIG.AUTH_DIR)) {
+                fs.mkdirSync(CONFIG.AUTH_DIR, { recursive: true });
+                console.log('[AUTH] Auth folder created');
             }
-        }
-    });
 
-    // ============================================
-    // MESSAGE HANDLER
-    // ============================================
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
-        try {
-            const msg = messages[0];
+            // Load auth state
+            const { state, saveCreds } = await useMultiFileAuthState(CONFIG.AUTH_DIR);
             
-            // Skip if no message or from self
-            if (!msg || !msg.key || msg.key.fromMe) return;
+            // Get latest WhatsApp version
+            const { version } = await fetchLatestWaWebVersion();
+            console.log(`[VERSION] WhatsApp Web Version: ${version.join('.')}`);
 
-            // Get remote JID (sender)
-            const jid = msg.key.remoteJid;
-            
-            // Only handle individual messages (not group messages)
-            if (!jid || !jid.endsWith('@s.whatsapp.net')) return;
+            // Create WhatsApp socket
+            sock = makeWASocket({
+                version,
+                auth: {
+                    creds: state.creds,
+                    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' })),
+                },
+                printQRInTerminal: true,
+                browser: Browsers.ubuntu('Chrome'),
+                logger: pino({ level: 'silent' }),
+                markOnlineOnConnect: true,
+                syncFullHistory: false,
+                generateHighQualityLinkPreview: false,
+            });
 
-            // Get message text
-            const messageText = (
-                msg.message?.conversation ||
-                msg.message?.extendedTextMessage?.text ||
-                msg.message?.imageMessage?.caption ||
-                ''
-            ).trim();
+            // ── Save credentials on update ──
+            sock.ev.on('creds.update', saveCreds);
 
-            // Skip empty messages
-            if (!messageText) return;
+            // ── Connection update handler ──
+            sock.ev.on('connection.update', async (update) => {
+                const { connection, lastDisconnect, qr } = update;
 
-            const pushName = msg.pushName || 'User';
-            console.log(`📩 Message from ${pushName} (${jid}): ${messageText.substring(0, 50)}`);
+                if (qr) {
+                    console.log('[QR] QR Code received (Ignoring - using Pair Code)');
+                }
 
-            // Get user state
-            const userState = getUserState(jid);
-            const now = Date.now();
-            const timeSinceLastWelcome = now - userState.lastWelcomeTime;
+                if (connection === 'open') {
+                    console.log('='.repeat(50));
+                    console.log(`  ✅ ${CONFIG.BOT_NAME} AI Bot සාර්ථකව සම්බන්ධ විය!`);
+                    console.log(`  📱 Bot Online - ${new Date().toLocaleString()}`);
+                    console.log('='.repeat(50));
+                    reconnectAttempts = 0;
+                }
 
-            // ============================================
-            // LOGIC FLOW
-            // ============================================
-
-            // CASE 1: New user or cooldown expired -> Send Welcome
-            if (userState.state === 'NEW' || timeSinceLastWelcome >= COOLDOWN_MS) {
-                try {
-                    await sock.sendMessage(jid, { text: WELCOME_MESSAGE });
-                    console.log(`✅ Welcome sent to ${pushName}`);
+                if (connection === 'close') {
+                    const shouldReconnect = 
+                        (lastDisconnect?.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
                     
-                    userState.state = 'WELCOME_SENT';
-                    userState.lastWelcomeTime = now;
-                    userState.lastActivity = now;
-                } catch (err) {
-                    console.error(`❌ Error sending welcome to ${jid}:`, err.message);
-                }
-                return;
-            }
+                    console.log(`[CONNECTION] සම්බන්ධතාවය විසන්ධි විය. Reconnect: ${shouldReconnect}`);
 
-            // CASE 2: Welcome already sent (and still in cooldown) -> Send Service Menu
-            if (userState.state === 'WELCOME_SENT') {
+                    if (shouldReconnect && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        reconnectAttempts++;
+                        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                        console.log(`[RECONNECT] තත්පර ${delay/1000}කින් නැවත සම්බන්ධ වේ... (උත්සහය: ${reconnectAttempts})`);
+                        setTimeout(connect, delay);
+                    } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                        console.log('[FATAL] උපරිම reconnect උත්සහයන් අවසන්. Bot එක restart වේ.');
+                        process.exit(1);
+                    }
+                }
+
+                // ── Handle Pairing Code ──
+                if (connection === 'connecting' && !sock.authState.creds.registered) {
+                    if (CONFIG.PAIR_NUMBER) {
+                        try {
+                            const code = await sock.requestPairingCode(CONFIG.PAIR_NUMBER);
+                            console.log('');
+                            console.log('='.repeat(50));
+                            console.log(`  📱 PAIR CODE එක පහතින් දක්වා ඇත:`);
+                            console.log(`  🔑 ${code}`);
+                            console.log('');
+                            console.log(`  WhatsApp එකේ → Linked Devices → Link with Phone Number`);
+                            console.log('='.repeat(50));
+                        } catch (err) {
+                            console.error('[PAIR ERROR] Pair code generation error:', err.message);
+                        }
+                    } else {
+                        console.warn('[WARN] PAIR_NUMBER env variable එක set කර නැත. QR code scan කරන්න.');
+                    }
+                }
+            });
+
+            // ── Incoming Messages Handler ──
+            sock.ev.on('messages.upsert', async ({ messages, type }) => {
                 try {
-                    await sock.sendMessage(jid, { text: SERVICE_MENU });
-                    console.log(`✅ Service Menu sent to ${pushName}`);
-                    
-                    userState.state = 'MENU_SENT';
-                    userState.lastActivity = now;
+                    // Only process new messages (not own messages)
+                    if (type !== 'notify') return;
+
+                    for (const msg of messages) {
+                        // Skip if no message content
+                        if (!msg.message) continue;
+                        
+                        // Get sender info
+                        const jid = msg.key.remoteJid;
+                        const sender = msg.key.participant || jid;
+                        const pushName = msg.pushName || 'User';
+                        
+                        // Skip group messages and status broadcasts
+                        if (jid.includes('@g.us') || jid === 'status@broadcast') continue;
+                        
+                        // Skip bot's own messages
+                        if (msg.key.fromMe) continue;
+                        
+                        // Extract text from message
+                        let text = '';
+                        if (msg.message.conversation) {
+                            text = msg.message.conversation.trim();
+                        } else if (msg.message.extendedTextMessage?.text) {
+                            text = msg.message.extendedTextMessage.text.trim();
+                        } else if (msg.message.imageMessage?.caption) {
+                            text = msg.message.imageMessage.caption.trim();
+                        } else {
+                            // Non-text message (image, sticker, video)
+                            text = '';
+                        }
+
+                        console.log(`[MSG] From: ${pushName} (${jid}) - Text: "${text}"`);
+
+                        // ── Process the message ──
+                        await processUserMessage(sock, msg, jid, text, pushName);
+                    }
                 } catch (err) {
-                    console.error(`❌ Error sending menu to ${jid}:`, err.message);
+                    console.error('[MSG ERROR]:', err.message);
                 }
-                return;
-            }
+            });
 
-            // CASE 3: Menu already sent -> Process user's choice
-            if (userState.state === 'MENU_SENT') {
-                let response = null;
-
-                switch (messageText) {
-                    case '1':
-                        response = OPTION_1_DEPOSIT;
-                        break;
-                    case '2':
-                        response = OPTION_2_WITHDRAW;
-                        break;
-                    case '3':
-                        response = OPTION_3_PROMO;
-                        break;
-                    case '4':
-                        response = OPTION_4_WEBSITE;
-                        break;
-                    case '5':
-                        response = OPTION_5_SOCIAL;
-                        break;
-                    case '6':
-                        response = OPTION_6_AVIATOR;
-                        break;
-                    case '7':
-                        response = OPTION_7_BOT;
-                        break;
-                    default:
-                        response = WAITING_RESPONSE;
-                        break;
-                }
-
-                try {
-                    await sock.sendMessage(jid, { text: response });
-                    console.log(`✅ Response sent to ${pushName} for option "${messageText}"`);
-                    
-                    // After sending response, reset state to WELCOME_SENT
-                    // so next message triggers the menu again
-                    userState.state = 'WELCOME_SENT';
-                    userState.lastActivity = now;
-                } catch (err) {
-                    console.error(`❌ Error sending response to ${jid}:`, err.message);
-                }
-                return;
-            }
-
-            // Fallback: reset state
-            userState.state = 'NEW';
-            userState.lastActivity = now;
+            // ── Handle messages update for edit/delete detection ──
+            sock.ev.on('messages.update', async (updates) => {
+                // Not needed for basic auto-reply
+            });
 
         } catch (err) {
-            console.error('❌ Message handler error:', err.message);
-            console.error(err.stack);
+            console.error('[BOT ERROR]:', err.message);
+            console.log('[RESTART] Bot එක තත්පර 5කින් restart වේ...');
+            setTimeout(startBot, 5000);
         }
-    });
-
-    // ============================================
-    // PRESENCE: Always show online
-    // ============================================
-    try {
-        await sock.sendPresenceUpdate('available');
-        setInterval(async () => {
-            try {
-                await sock.sendPresenceUpdate('available');
-            } catch (e) {
-                // Ignore presence errors
-            }
-        }, 5 * 60 * 1000); // Every 5 minutes
-    } catch (e) {
-        // Ignore initial presence error
     }
 
-    console.log('✅ Bot handler registered successfully!');
+    // ── Start the connection ──
+    await connect();
+
     return sock;
 }
 
 // ============================================
-// START THE BOT
+// MESSAGE PROCESSING LOGIC
 // ============================================
-startBot().catch(err => {
-    console.error('❌ Fatal error:', err);
-    console.log('🔄 Restarting in 10 seconds...');
-    setTimeout(() => {
-        console.log('🔄 Restarting...');
-        startBot();
-    }, 10000);
-});
+async function processUserMessage(sock, msg, jid, text, pushName) {
+    try {
+        // ── First message check: Send Welcome + Menu ──
+        // If user has no cooldown (never messaged before OR cooldown expired)
+        if (!cooldown.isCooldown(jid)) {
+            console.log(`[PROCESS] Sending WELCOME to ${pushName} (${jid})`);
+            
+            // Send Welcome Message
+            await sock.sendMessage(jid, { 
+                text: MESSAGES.WELCOME 
+            });
+            
+            // Small delay between messages
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Send Menu
+            await sock.sendMessage(jid, { 
+                text: MESSAGES.MENU 
+            });
+            
+            // Set cooldown
+            cooldown.setCooldown(jid);
+            return;
+        }
+        
+        // ── User is in cooldown period ──
+        // If user sends a message during cooldown, do NOT reply at all
+        // (Silently ignore during cooldown as per requirement)
+        if (cooldown.isCooldown(jid)) {
+            console.log(`[COOLDOWN] ${pushName} is in cooldown. Remaining: ${cooldown.getRemainingMinutes(jid)}min`);
+            return; // No reply during cooldown
+        }
+        
+        // ── If we get here, cooldown has expired. Process the input ──
+        // Check if user sent a number
+        const userInput = text.trim();
+        
+        if (userInput === '1') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_1 });
+        } else if (userInput === '2') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_2 });
+        } else if (userInput === '3') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_3 });
+        } else if (userInput === '4') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_4 });
+        } else if (userInput === '5') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_5 });
+        } else if (userInput === '6') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_6 });
+        } else if (userInput === '7') {
+            await sock.sendMessage(jid, { text: MESSAGES.OPTION_7 });
+        } else {
+            // Invalid input (not a number or non-number message)
+            await sock.sendMessage(jid, { text: MESSAGES.INVALID_INPUT });
+        }
+        
+        // Set cooldown after sending ANY reply
+        cooldown.setCooldown(jid);
+        console.log(`[REPLY] Sent response to ${pushName} for input: "${userInput}"`);
+        
+    } catch (err) {
+        console.error(`[SEND ERROR] Failed to send to ${jid}:`, err.message);
+    }
+}
 
 // ============================================
-// UNCAUGHT EXCEPTIONS HANDLER
+// SELF-KEEP-ALIVE (Prevent Railway Sleep)
 // ============================================
+function startKeepAlive() {
+    if (!CONFIG.RAILWAY_URL) {
+        console.log('[KEEPALIVE] RAILWAY_URL set කර නැත. Self-ping එක වැඩ නොකරයි.');
+        console.log('[KEEPALIVE] UptimeRobot.com වෙබ් අඩවියෙන් FREE monitor එකක් හදාගන්න.');
+        return;
+    }
+    
+    console.log(`[KEEPALIVE] Self-ping එක ${CONFIG.KEEP_ALIVE_INTERVAL/60000} min ට වරක් start වේ...`);
+    
+    setInterval(async () => {
+        try {
+            const http = require('http');
+            const https = require('https');
+            const url = CONFIG.RAILWAY_URL.replace(/\/$/, '') + '/health';
+            
+            const client = url.startsWith('https') ? https : http;
+            
+            await new Promise((resolve, reject) => {
+                const req = client.get(url, (res) => {
+                    resolve(res.statusCode);
+                });
+                req.on('error', reject);
+                req.setTimeout(10000, () => {
+                    req.destroy();
+                    reject(new Error('Timeout'));
+                });
+            });
+            
+            console.log(`[KEEPALIVE] Ping OK - ${new Date().toLocaleString()}`);
+        } catch (err) {
+            console.log(`[KEEPALIVE] Ping failed: ${err.message}`);
+        }
+    }, CONFIG.KEEP_ALIVE_INTERVAL);
+}
+
+// ============================================
+// START APPLICATION
+// ============================================
+async function main() {
+    // Start Express server
+    app.listen(CONFIG.PORT, () => {
+        console.log(`[SERVER] Web server port ${CONFIG.PORT} එකෙන් ආරම්භ විය`);
+        console.log(`[SERVER] Health check: http://localhost:${CONFIG.PORT}/health`);
+    });
+    
+    // Start WhatsApp Bot
+    await startBot();
+    
+    // Start keep-alive
+    startKeepAlive();
+}
+
+// Error handling for uncaught errors
 process.on('uncaughtException', (err) => {
-    console.error('❌ Uncaught Exception:', err.message);
-    console.log('🔄 Restarting in 5 seconds...');
-    setTimeout(() => startBot(), 5000);
+    console.error('[UNCAUGHT ERROR]:', err.message);
+    console.log('[RECOVERY] Bot එක restart වේ...');
+    setTimeout(() => process.exit(1), 2000);
 });
 
 process.on('unhandledRejection', (err) => {
-    console.error('❌ Unhandled Rejection:', err.message);
+    console.error('[UNHANDLED REJECTION]:', err.message);
 });
+
+// Start
+main();
