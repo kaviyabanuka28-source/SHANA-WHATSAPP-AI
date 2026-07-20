@@ -42,7 +42,7 @@ const chromiumPath = findChromiumPath();
 if (chromiumPath) console.log(`🔍 Chromium path: ${chromiumPath}`);
 else console.warn('⚠️ Chromium not found - will use system default');
 
-// ========== CLIENT ==========
+// ========== CLIENT (FIXED - pairWithPhoneNumber භාවිතා කර ඇත) ==========
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
     puppeteer: {
@@ -60,7 +60,12 @@ const client = new Client({
         ],
         executablePath: chromiumPath,
     },
-    // webVersionCache: අයින් කළා - library එක auto detect කරන්න දැම්මා
+    // ✅ FIX: QR code වෙනුවට pairing code flow එක activate කරයි
+    pairWithPhoneNumber: {
+        phoneNumber: process.env.WHATSAPP_NUMBER, // e.g., "947xxxxxxxx" (රටේ කේතය + අංකය, + නැතුව)
+        showNotification: true, // දුරකථනයට notification එකක් එවයි
+        // intervalMs: 180000, // අවශ්‍යනම් interval එක වෙනස් කරන්න (default: 3 min)
+    },
 });
 
 // ========== MESSAGE TEMPLATES ==========
@@ -199,9 +204,8 @@ const MSG_DEFAULT =
 මතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! 
 ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
 
-// ========== AUTO-REPLY LOGIC (SIMPLIFIED & FIXED) ==========
+// ========== AUTO-REPLY LOGIC ==========
 async function handleMessage(message) {
-    // Ignore our own messages
     if (message.fromMe) return;
 
     const userId = message.from;
@@ -210,7 +214,6 @@ async function handleMessage(message) {
     console.log(`\n📨 Message from: ${userId}`);
     console.log(`💬 Content: "${message.body.trim()}"`);
 
-    // --- Initialize user state ---
     if (!userStates.has(userId)) {
         userStates.set(userId, { state: 0, lastReplyAt: 0 });
         console.log(`🆕 New user: ${userId}`);
@@ -218,7 +221,6 @@ async function handleMessage(message) {
 
     const userData = userStates.get(userId);
 
-    // --- Cooldown check (20 min) ---
     if (!canReply(userId)) {
         const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - userData.lastReplyAt)) / 60000);
         console.log(`⏳ Cooldown active for ${userId} — ${remaining} min remaining`);
@@ -229,21 +231,17 @@ async function handleMessage(message) {
     let nextState = userData.state;
 
     try {
-        // ===== STATE MACHINE =====
         if (userData.state === 0) {
-            // State 0: Send WELCOME, move to state 1
             replyText = MSG_WELCOME;
             nextState = 1;
             console.log(`➡️ State 0 → 1: Sending WELCOME`);
         }
         else if (userData.state === 1) {
-            // State 1: Send MENU, move to state 2 (normal mode)
             replyText = MSG_MENU;
             nextState = 2;
             console.log(`➡️ State 1 → 2: Sending MENU`);
         }
         else {
-            // State 2+: Normal mode — check menu options
             const msg = msgBody.trim();
 
             if (msg === 'menu' || msg === 'help' || msg === 'උදව්') {
@@ -284,20 +282,16 @@ async function handleMessage(message) {
             }
         }
 
-        // ===== SEND REPLY (FIXED: use client.sendMessage directly) =====
         if (replyText) {
             console.log(`📤 Sending reply to ${userId}...`);
             
-            // Mark as seen first (optional — shows blue tick)
             try {
                 const chat = await message.getChat();
                 await chat.sendSeen();
             } catch (_) {}
             
-            // Send the message using the built-in method
             await client.sendMessage(userId, replyText);
             
-            // Update state and cooldown
             userData.state = nextState;
             userData.lastReplyAt = Date.now();
             
@@ -309,31 +303,19 @@ async function handleMessage(message) {
     }
 }
 
-// ========== EVENTS ==========
+// ========== EVENTS (FIXED) ==========
 
-let pairingCodeRequested = false;
-
-client.on('qr', async (qr) => {
-    console.log('\n📱 QR received — requesting pairing code...');
-    if (!pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
-        pairingCodeRequested = true;
-        try {
-            const pCode = await client.requestPairingCode(process.env.WHATSAPP_NUMBER, true);
-            console.log('================================================');
-            console.log(`🔢 Pairing Code: ${pCode}`);
-            console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
-            console.log('================================================');
-        } catch (e) {
-            console.error('❌ Pairing Code error:', e.message || e);
-            pairingCodeRequested = false;
-        }
-    }
-});
-
+// ✅ FIX: 'code' event එකෙන් pairing code එක ලැබේ (QR event එකෙන් නොවේ)
 client.on('code', (code) => {
     console.log('================================================');
     console.log(`🔢 Pairing Code: ${code}`);
+    console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
     console.log('================================================');
+});
+
+// QR event එක දැන් අවශ්‍ය නැහැ - pairWithPhoneNumber activate වූ විට QR එක fire වෙන්නේ නැහැ
+client.on('qr', (qr) => {
+    console.log('📱 QR code received (pairWithPhoneNumber mode active - ignoring QR)');
 });
 
 client.on('authenticated', () => {
@@ -343,12 +325,10 @@ client.on('authenticated', () => {
 client.on('ready', () => {
     console.log('\n✅✅✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅✅✅');
     console.log('📌 Now anyone who messages this number will get auto-replies!\n');
-    pairingCodeRequested = false;
 });
 
 client.on('disconnected', (reason) => {
     console.log(`⚠️ Disconnected: ${reason || 'unknown'}`);
-    pairingCodeRequested = false;
     console.log('🔄 Reconnecting in 5 seconds...');
     setTimeout(() => {
         client.initialize();
@@ -357,20 +337,15 @@ client.on('disconnected', (reason) => {
 
 client.on('auth_failure', (msg) => {
     console.error('❌ Auth failure:', msg);
-    pairingCodeRequested = false;
 });
 
-// ========== MESSAGE HANDLER (SIMPLIFIED - NO pupPage CHECKS) ==========
+// ========== MESSAGE HANDLERS ==========
 client.on('message_create', async (message) => {
-    // message_create fires for ALL messages (sent AND received)
-    // We only want incoming messages that are not from us
     if (message.fromMe) return;
     await handleMessage(message);
 });
 
-// Keep the 'message' event too as a backup
 client.on('message', async (message) => {
-    // message only fires for RECEIVED messages (not sent by us)
     await handleMessage(message);
 });
 
