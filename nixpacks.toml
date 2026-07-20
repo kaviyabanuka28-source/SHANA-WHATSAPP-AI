@@ -14,5 +14,3 @@ nixPkgs = [
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "1"
-# executable path එක ඉවත් කිරීම වඩාත් ආරක්ෂිතයි, 
-# නැතහොත් එය නිවැරදි ස්ථානයට යොමු කරන්න.
