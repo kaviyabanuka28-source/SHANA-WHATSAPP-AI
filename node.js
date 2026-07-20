@@ -24,17 +24,12 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: [
-            '--no-sandbox', 
-            '--disable-setuid-sandbox', 
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote',
-            '--single-process'
-        ]
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     },
-    // මේක අනිවාර්යයෙන්ම දාන්න, code එක එනකල් බලාගෙන ඉන්න වෙලාව වැඩි කරනවා
-    authTimeoutMs: 60000 
+    webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1014553472.html',
+    }
 });
 
 client.on('ready', async () => {
