@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "whatsapp-web.js": "^1.26.0",
-    "puppeteer": "^22.0.0"
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#wwebjs-auth",
+    "puppeteer": "latest"
   },
   "engines": {
     "node": "18.x"
