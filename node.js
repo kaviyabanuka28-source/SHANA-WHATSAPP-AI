@@ -13,20 +13,12 @@ function canReply(userId) {
     return (Date.now() - data.lastReplyAt) >= COOLDOWN_MS;
 }
 
-// ========== CHROMIUM PATH (Railway Nixpacks compatible) ==========
+// ========== CHROMIUM PATH ==========
 function findChromiumPath() {
-    // PUPPETEER_EXECUTABLE_PATH check
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         const p = process.env.PUPPETEER_EXECUTABLE_PATH;
-        // Railway nixpacks වල "chromium" විතරක් දාලා තියෙනවා නම් full path search කරන්න
-        if (p === 'chromium' || p === 'chromium-browser') {
-            // which command එකෙන් හොයන්න
-        } else {
-            return p;
-        }
+        if (p !== 'chromium' && p !== 'chromium-browser') return p;
     }
-    
-    // which command එකෙන් හොයන්න
     try {
         const result = execSync(
             'which chromium 2>/dev/null || which chromium-browser 2>/dev/null || ' +
@@ -34,19 +26,10 @@ function findChromiumPath() {
         ).toString().trim();
         if (result) return result;
     } catch (_) {}
-    
-    // Common paths
     const candidates = [
         '/usr/bin/chromium',
         '/usr/bin/chromium-browser',
-        '/nix/store/*/bin/chromium',  // Nixpacks
-        '/home/user/.nix-profile/bin/chromium',
-        '/run/current-system/sw/bin/chromium',
-        '/nix/var/nix/profiles/default/bin/chromium',
-        '/snap/bin/chromium'
     ];
-    
-    // Glob pattern support නැති නිසා fs.readdirSync භාවිතා කරන්න
     try {
         const nixStore = '/nix/store';
         if (fs.existsSync(nixStore)) {
@@ -59,19 +42,15 @@ function findChromiumPath() {
             }
         }
     } catch (_) {}
-    
     for (const p of candidates) {
-        if (p.includes('*')) continue; // skip glob ones
         try { fs.accessSync(p); return p; } catch (_) {}
     }
-    
     return undefined;
 }
 
 const chromiumPath = findChromiumPath();
 if (chromiumPath) {
     console.log(`🔍 Chromium path: ${chromiumPath}`);
-    // PUPPETEER_EXECUTABLE_PATH set කරන්න නැත්තම්
     if (!process.env.PUPPETEER_EXECUTABLE_PATH) {
         process.env.PUPPETEER_EXECUTABLE_PATH = chromiumPath;
     }
@@ -79,11 +58,10 @@ if (chromiumPath) {
     console.warn('⚠️ Chromium not found - will use system default');
 }
 
-// Session path
 const SESSION_PATH = './.wwebjs_auth';
 
-// ========== CLIENT ==========
-const client = new Client({
+// ========== CLIENT (FIXED: webVersionCache + pairWithPhoneNumber) ==========
+const clientOptions = {
     authStrategy: new LocalAuth({ dataPath: SESSION_PATH }),
     puppeteer: {
         headless: true,
@@ -100,9 +78,23 @@ const client = new Client({
         ],
         executablePath: chromiumPath,
     },
-});
+    // ✅ FIX 1: Version cache එක off කරන්න - "Evaluation failed" errors fix කරයි
+    webVersionCache: { type: 'none' },
+};
 
-// ========== MESSAGE TEMPLATES (ඔබේ එලෙසම) ==========
+// ✅ FIX 2: WHATSAPP_NUMBER තියෙනවා නම් pairWithPhoneNumber activate කරන්න
+if (process.env.WHATSAPP_NUMBER) {
+    const phone = process.env.WHATSAPP_NUMBER.replace(/[^0-9]/g, '');
+    clientOptions.pairWithPhoneNumber = {
+        phoneNumber: phone,
+        showNotification: true,
+    };
+    console.log(`📱 PairWithPhoneNumber enabled for: ${phone}`);
+}
+
+const client = new Client(clientOptions);
+
+// ========== MESSAGE TEMPLATES (ඔබේ එලෙසම - කිසිදු වෙනසක් නැහැ) ==========
 const MSG_WELCOME = 
 `AI BOT - 
 SHANA AI BOT SYSTEM 🕹️
@@ -238,9 +230,8 @@ const MSG_DEFAULT =
 මතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! 
 ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
 
-// ========== AUTO-REPLY LOGIC (FIXED) ==========
+// ========== AUTO-REPLY LOGIC ==========
 async function handleMessage(message) {
-    // Ignore own messages
     if (message.fromMe) return;
 
     const userId = message.from;
@@ -249,15 +240,12 @@ async function handleMessage(message) {
     console.log(`\n📨 Message from: ${userId}`);
     console.log(`💬 Content: "${message.body.trim()}"`);
 
-    // Initialize user state
     if (!userStates.has(userId)) {
         userStates.set(userId, { state: 0, lastReplyAt: 0 });
-        console.log(`🆕 New user state initialized: ${userId}`);
     }
 
     const userData = userStates.get(userId);
 
-    // Cooldown check
     if (!canReply(userId)) {
         const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - userData.lastReplyAt)) / 60000);
         console.log(`⏳ Cooldown active for ${userId} — ${remaining} min remaining`);
@@ -269,180 +257,66 @@ async function handleMessage(message) {
 
     try {
         if (userData.state === 0) {
-            // State 0: Send WELCOME
             replyText = MSG_WELCOME;
             nextState = 1;
             console.log(`➡️ State 0 → 1: Sending WELCOME`);
         }
         else if (userData.state === 1) {
-            // State 1: Send MENU
             replyText = MSG_MENU;
             nextState = 2;
             console.log(`➡️ State 1 → 2: Sending MENU`);
         }
         else {
-            // State 2+: Check menu options
             const msg = msgBody.trim();
-
             if (msg === 'menu' || msg === 'help' || msg === 'උදව්') {
                 replyText = MSG_MENU;
-                console.log(`➡️ State 2: MENU requested`);
             }
-            else if (msg === '1') {
-                replyText = MSG_OPT1;
-                console.log(`➡️ State 2: OPTION 1`);
-            }
-            else if (msg === '2') {
-                replyText = MSG_OPT2;
-                console.log(`➡️ State 2: OPTION 2`);
-            }
-            else if (msg === '3') {
-                replyText = MSG_OPT3;
-                console.log(`➡️ State 2: OPTION 3`);
-            }
-            else if (msg === '4') {
-                replyText = MSG_OPT4;
-                console.log(`➡️ State 2: OPTION 4`);
-            }
-            else if (msg === '5') {
-                replyText = MSG_OPT5;
-                console.log(`➡️ State 2: OPTION 5`);
-            }
-            else if (msg === '6') {
-                replyText = MSG_OPT6;
-                console.log(`➡️ State 2: OPTION 6`);
-            }
-            else if (msg === '7') {
-                replyText = MSG_OPT7;
-                console.log(`➡️ State 2: OPTION 7`);
-            }
-            else {
-                replyText = MSG_DEFAULT;
-                console.log(`➡️ State 2: DEFAULT reply (unknown: "${msgBody}")`);
-            }
+            else if (msg === '1') { replyText = MSG_OPT1; }
+            else if (msg === '2') { replyText = MSG_OPT2; }
+            else if (msg === '3') { replyText = MSG_OPT3; }
+            else if (msg === '4') { replyText = MSG_OPT4; }
+            else if (msg === '5') { replyText = MSG_OPT5; }
+            else if (msg === '6') { replyText = MSG_OPT6; }
+            else if (msg === '7') { replyText = MSG_OPT7; }
+            else { replyText = MSG_DEFAULT; }
         }
 
         if (replyText) {
             console.log(`📤 Sending reply to ${userId}...`);
-            
-            // Mark as seen
             try {
                 const chat = await message.getChat();
                 await chat.sendSeen();
             } catch (_) {}
-            
-            // Send message
             await client.sendMessage(userId, replyText);
-            
-            // Update state and cooldown
             userData.state = nextState;
             userData.lastReplyAt = Date.now();
-            
             console.log(`✅ Reply sent! State: ${nextState}`);
         }
     } catch (error) {
-        console.error(`❌ Error handling ${userId}:`, error.message || error);
+        console.error(`❌ Error:`, error.message || error);
     }
 }
 
-// ========== PAIRING CODE WITH RETRY LOGIC ==========
-let pairingCodeRequested = false;
-let pairingRetryCount = 0;
-const MAX_RETRIES = 5;
+// ========== EVENTS ==========
 
-async function requestPairingCodeWithRetry() {
-    if (!process.env.WHATSAPP_NUMBER || pairingCodeRequested) return;
-    
-    pairingCodeRequested = true;
-    const phoneNumber = process.env.WHATSAPP_NUMBER.replace(/[^0-9]/g, ''); // අංක විතරක් ගන්න
-    
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-            console.log(`\n🔑 Pairing code attempt ${attempt}/${MAX_RETRIES} for ${phoneNumber}...`);
-            
-            const code = await client.requestPairingCode(phoneNumber, true);
-            
-            console.log('================================================');
-            console.log(`🔢✅ Pairing Code: ${code}`);
-            console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
-            console.log('📱 Enter this code: ' + code);
-            console.log('================================================');
-            return; // Success!
-        } catch (err) {
-            console.error(`❌ Attempt ${attempt} failed:`, err.message || err);
-            
-            if (attempt < MAX_RETRIES) {
-                const delay = attempt * 3000; // 3s, 6s, 9s, 12s, 15s
-                console.log(`⏳ Retrying in ${delay/1000} seconds...`);
-                await new Promise(r => setTimeout(r, delay));
-            } else {
-                console.error('❌ All retry attempts failed!');
-                pairingCodeRequested = false; // Reset for next QR event
-            }
-        }
-    }
-}
-
-// ========== WAIT FOR PAGE READY THEN REQUEST PAIRING ==========
-async function waitForPageAndPair() {
-    console.log('⏳ Waiting for WhatsApp Web page to initialize...');
-    
-    // Wait for the puppeteer page to be available
-    let pageReady = false;
-    for (let i = 0; i < 30; i++) { // Try for 30 seconds
-        try {
-            if (client.pupPage) {
-                // Check if page is actually responsive
-                await client.pupPage.evaluate(() => 1 + 1);
-                pageReady = true;
-                console.log('✅ Page is ready!');
-                break;
-            }
-        } catch (_) {}
-        await new Promise(r => setTimeout(r, 1000));
-    }
-    
-    if (pageReady) {
-        // Wait additional time for WhatsApp Web internal JS to load
-        console.log('⏳ Waiting for WhatsApp Web internal modules (5s)...');
-        await new Promise(r => setTimeout(r, 5000));
-        await requestPairingCodeWithRetry();
-    } else {
-        console.error('❌ Page did not become ready within 30 seconds');
-        // Try anyway as backup
-        setTimeout(requestPairingCodeWithRetry, 10000);
-    }
-}
-
-// ========== EVENTS (FIXED) ==========
-
-// loading_screen: track progress
-client.on('loading_screen', (percent, message) => {
-    console.log(`⏳ Loading: ${percent}% - ${message}`);
-    
-    if (percent === 100 && !pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
-        console.log('📄 Page 100% loaded! Waiting before pairing...');
-        setTimeout(waitForPageAndPair, 2000);
-    }
-});
-
-// QR code backup
-client.on('qr', (qr) => {
-    console.log('📱 QR Code received from WhatsApp Web');
-    
-    if (!pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
-        console.log('📱 QR received - will attempt pairing code in 8 seconds...');
-        setTimeout(waitForPageAndPair, 8000);
-    }
-});
-
-// Pairing code event (for newer versions that support pairWithPhoneNumber)
+// ✅ FIX 3: pairWithPhoneNumber mode එකේදී 'code' event එකෙන් pair code එක ලැබේ
 client.on('code', (code) => {
     console.log('================================================');
-    console.log(`🔢✅ Pairing Code (from code event): ${code}`);
+    console.log(`🔢✅ Pairing Code: ${code}`);
     console.log('📱 WhatsApp → Linked Devices → Link with Phone Number');
+    console.log('📱 Enter this code in WhatsApp: ' + code);
     console.log('================================================');
-    pairingCodeRequested = true;
+});
+
+// Backup: QR event එක (pairWithPhoneNumber නැතිවුණොත්)
+client.on('qr', (qr) => {
+    console.log('📱 QR Code received');
+});
+
+client.on('loading_screen', (percent, message) => {
+    if (percent % 25 === 0 || percent === 100) {
+        console.log(`⏳ Loading: ${percent}%`);
+    }
 });
 
 client.on('authenticated', () => {
@@ -450,21 +324,19 @@ client.on('authenticated', () => {
 });
 
 client.on('ready', () => {
-    console.log('\n✅✅✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅✅✅');
-    console.log('📌 Users can now message this number for auto-replies!\n');
+    console.log('\n✅✅✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅✅✅\n');
 });
 
-client.on('disconnected', (reason) => {
+client.on('disconnected', async (reason) => {
     console.log(`⚠️ Disconnected: ${reason || 'unknown'}`);
-    pairingCodeRequested = false;
     
+    // Logout / Unpaired වුණොත් session එක delete කරන්න
     if (reason === 'LOGOUT' || reason === 'UNPAIRED') {
-        // Session expired - need to delete and re-authenticate
-        console.log('🗑️ Session expired! Deleting old session...');
+        console.log('🗑️ Session expired. Deleting old session...');
         try {
             if (fs.existsSync(SESSION_PATH)) {
                 fs.rmSync(SESSION_PATH, { recursive: true, force: true });
-                console.log('✅ Session deleted successfully');
+                console.log('✅ Session deleted. Will request new pairing code on restart.');
             }
         } catch (e) {
             console.error('❌ Failed to delete session:', e.message);
@@ -472,42 +344,33 @@ client.on('disconnected', (reason) => {
     }
     
     console.log('🔄 Reconnecting in 5 seconds...');
-    setTimeout(() => {
-        console.log('🔄 Restarting client...');
-        client.initialize();
-    }, 5000);
+    setTimeout(() => client.initialize(), 5000);
 });
 
 client.on('auth_failure', (msg) => {
     console.error('❌ Auth failure:', msg);
-    
-    // Delete session and try again
-    console.log('🗑️ Deleting session due to auth failure...');
+    // Session delete කරන්න
     try {
         if (fs.existsSync(SESSION_PATH)) {
             fs.rmSync(SESSION_PATH, { recursive: true, force: true });
-            console.log('✅ Session deleted');
+            console.log('✅ Deleted corrupt session');
         }
-    } catch (e) {
-        console.error('❌ Failed to delete session:', e.message);
-    }
+    } catch (_) {}
 });
 
-// ========== MESSAGE HANDLER (FIXED: ONLY ONE EVENT) ==========
-// ✅ FIX: එක event එකක් විතරක් - double fire වෙන එක නවත්වන්න
+// ========== MESSAGE HANDLER ==========
 client.on('message', async (message) => {
     await handleMessage(message);
 });
 
-// ========== INITIALIZE ==========
+// ========== STARTUP ==========
 console.log('🚀 SHANA AI Bot ආරම්භ වේ...');
-console.log('⏳ WhatsApp Web එක load වෙනකන් ඉන්න...\n');
-
-// Check for existing session
+console.log(`📂 Session path: ${SESSION_PATH}`);
 if (fs.existsSync(SESSION_PATH)) {
-    console.log('📂 Existing session found. Attempting to reuse...');
+    console.log('📂 Existing session found. Auto-connecting...');
 } else {
-    console.log('🆕 No existing session. Will request pairing code...');
+    console.log('🆕 No session. Will generate pairing code or QR...');
 }
+console.log('⏳ WhatsApp Web එක load වෙනකන් ඉන්න...\n');
 
 client.initialize();
