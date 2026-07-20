@@ -24,34 +24,36 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
-    }
-});
-
-// මේ කෑල්ල අනිවාර්යයෙන්ම දාන්න (WhatsApp web updates නිසා එන ගැටලුවට විසඳුම)
-client.on('ready', () => {
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process'
+        ]
+    },
+    // මේක අනිවාර්යයෙන්ම දාන්න, code එක එනකල් බලාගෙන ඉන්න වෙලාව වැඩි කරනවා
+    authTimeoutMs: 60000 
+});       // මේක වෙනස් කරන්න
+client.on('ready', async () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
+    
+    // Ready වුණාට පස්සේ තව තත්පර 5ක් ඉඳලා code එක ඉල්ලන්න
+    setTimeout(async () => {
+        try {
+            console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
+            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+            console.log('================================================');
+            console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
+            console.log('================================================');
+        } catch (e) {
+            console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
+        }
+    }, 5000); 
 });
 
-// මේක පල්ලෙහාට දාන්න
 client.initialize();
-
-// Pairing Code ලබාගැනීමේ කාලය තත්පර 40 දක්වා වැඩි කිරීම
-setTimeout(async () => {
-    if (!MY_PHONE_NUMBER) {
-        console.error('❌ දෝෂය: WHATSAPP_NUMBER නම් variable එකක් set කර නැත!');
-        return;
-    }
-    try {
-        console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
-        const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
-        console.log('================================================');
-        console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
-        console.log('================================================');
-    } catch (e) {
-        console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
-    }
-}, 40000); 
 
 client.on('message', async (message) => {
     if (message.fromMe) return;
