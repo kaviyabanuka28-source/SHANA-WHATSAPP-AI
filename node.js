@@ -1,19 +1,17 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const { execSync } = require('child_process');
 
-// ========== COOLDOWN ==========
-const COOLDOWN_MS = 20 * 60 * 1000; // විනාඩි 20
-
-const userStates = new Map(); // { state: 0=welcome, 1=menu, 2=normal, lastReplyAt }
+// ========== COOLDOWN (20 min) ==========
+const COOLDOWN_MS = 20 * 60 * 1000;
+const userStates = new Map(); // { state, lastReplyAt }
 
 function canReply(userId) {
     const data = userStates.get(userId);
     if (!data) return true;
-    if (Date.now() - data.lastReplyAt < COOLDOWN_MS) return false;
-    return true;
+    return (Date.now() - data.lastReplyAt) >= COOLDOWN_MS;
 }
 
-// ========== CHROMIUM ==========
+// ========== CHROMIUM PATH ==========
 function findChromiumPath() {
     if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         const p = process.env.PUPPETEER_EXECUTABLE_PATH;
@@ -21,7 +19,8 @@ function findChromiumPath() {
     }
     try {
         const result = execSync(
-            'which chromium 2>/dev/null || which chromium-browser 2>/dev/null || which google-chrome-stable 2>/dev/null || which google-chrome 2>/dev/null || echo ""'
+            'which chromium 2>/dev/null || which chromium-browser 2>/dev/null || ' +
+            'which google-chrome-stable 2>/dev/null || which google-chrome 2>/dev/null || echo ""'
         ).toString().trim();
         if (result) return result;
     } catch (_) {}
@@ -29,6 +28,9 @@ function findChromiumPath() {
         '/home/user/.nix-profile/bin/chromium',
         '/run/current-system/sw/bin/chromium',
         '/nix/var/nix/profiles/default/bin/chromium',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/snap/bin/chromium'
     ];
     for (const p of candidates) {
         try { require('fs').accessSync(p); return p; } catch (_) {}
@@ -38,7 +40,7 @@ function findChromiumPath() {
 
 const chromiumPath = findChromiumPath();
 if (chromiumPath) console.log(`🔍 Chromium path: ${chromiumPath}`);
-else console.warn('⚠️ Chromium not found');
+else console.warn('⚠️ Chromium not found - will use system default');
 
 // ========== CLIENT ==========
 const client = new Client({
@@ -46,23 +48,22 @@ const client = new Client({
     puppeteer: {
         headless: true,
         args: [
-            '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-            '--disable-gpu', '--disable-accelerated-2d-canvas', '--no-first-run',
-            '--no-zygote', '--single-process', '--disable-background-networking',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-background-networking',
         ],
         executablePath: chromiumPath,
     },
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.3000.1014553472.html',
-    },
+    // webVersionCache: අයින් කළා - library එක auto detect කරන්න දැම්මා
 });
 
-// ========== STATE ==========
-let pairingCodeRequested = false;
-
-// ========== MESSAGE TEMPLATES (ඔබේ පණිවිඩ වචනයෙන් වචනය) ==========
-
+// ========== MESSAGE TEMPLATES ==========
 const MSG_WELCOME = 
 `AI BOT - 
 SHANA AI BOT SYSTEM 🕹️
@@ -198,157 +199,122 @@ const MSG_DEFAULT =
 මතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! 
 ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
 
-// ====================================================================
-// *** DIRECT SEND FUNCTION (pupPage.evaluate හරහා WhatsApp Web Store එකට) ***
-// ====================================================================
-async function sendDirectMessage(chatId, text) {
-    try {
-        const result = await client.pupPage.evaluate(async (params) => {
-            const { chatId: cId, text: msgText } = params;
-            
-            // WhatsApp Web Store එකෙන් chat එක load කරන්න
-            const chat = window.Store.Chat.get(cId);
-            if (!chat) return { success: false, error: 'Chat not found' };
-            
-            // Message object එක හදන්න
-            const id = window.Store.Msg.nextId();
-            const msg = {
-                id: id,
-                body: msgText,
-                type: 'chat',
-                to: chatId,
-                from: window.Store.User.getMaybeMeUser().jid,
-                self: 'in',
-                t: parseInt(Date.now() / 1000),
-                notifyName: window.Store.User.getMaybeMeUser().name || 'Bot',
-                isNewMsg: true,
-                isOnlineMsg: true,
-            };
-            
-            // Message එක send කරන්න
-            await window.Store.SendMessage.addAndSendMsgToChat(chat, msg);
-            
-            // Success එක confirm කරන්න
-            const sentMsg = window.Store.Msg.get(id._serialized);
-            return { success: true, id: id._serialized, found: !!sentMsg };
-        }, { chatId, text });
-        
-        console.log(`✅ Message sent to ${chatId}:`, result);
-        return true;
-    } catch (e) {
-        console.error(`❌ Direct send failed for ${chatId}:`, e.message || e);
-        // Fallback to client.sendMessage
-        try {
-            await client.sendMessage(chatId, text);
-            console.log(`✅ Fallback sendMessage worked for ${chatId}`);
-            return true;
-        } catch (e2) {
-            console.error(`❌ Fallback also failed:`, e2.message || e2);
-            return false;
-        }
-    }
-}
-
-// ====================================================================
-// *** AUTO-REPLY LOGIC ***
-// ====================================================================
+// ========== AUTO-REPLY LOGIC (SIMPLIFIED & FIXED) ==========
 async function handleMessage(message) {
+    // Ignore our own messages
     if (message.fromMe) return;
-    
+
     const userId = message.from;
-    const msgBody = message.body.trim();
-    
-    console.log(`📨 From: ${userId} | "${msgBody}"`);
-    
-    // --- Initialize user state if new ---
+    const msgBody = message.body.trim().toLowerCase();
+
+    console.log(`\n📨 Message from: ${userId}`);
+    console.log(`💬 Content: "${message.body.trim()}"`);
+
+    // --- Initialize user state ---
     if (!userStates.has(userId)) {
         userStates.set(userId, { state: 0, lastReplyAt: 0 });
+        console.log(`🆕 New user: ${userId}`);
     }
-    
+
     const userData = userStates.get(userId);
-    
+
     // --- Cooldown check (20 min) ---
     if (!canReply(userId)) {
-        console.log(`⏳ Cooldown for ${userId}, next reply after ${new Date(userData.lastReplyAt + COOLDOWN_MS).toLocaleTimeString()}`);
+        const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - userData.lastReplyAt)) / 60000);
+        console.log(`⏳ Cooldown active for ${userId} — ${remaining} min remaining`);
         return;
     }
-    
+
     let replyText = '';
     let nextState = userData.state;
-    
-    // ===== STATE 0: Welcome not sent yet =====
-    if (userData.state === 0) {
-        replyText = MSG_WELCOME;
-        nextState = 1;
-        console.log(`➡️ State 0→1: Sending WELCOME to ${userId}`);
-    }
-    // ===== STATE 1: Welcome sent, menu not sent yet =====
-    else if (userData.state === 1) {
-        replyText = MSG_MENU;
-        nextState = 2;
-        console.log(`➡️ State 1→2: Sending MENU to ${userId}`);
-    }
-    // ===== STATE 2: Normal mode =====
-    else {
-        const msg = msgBody.toLowerCase().trim();
-        
-        if (['menu', 'help', 'උදව්'].includes(msg)) {
+
+    try {
+        // ===== STATE MACHINE =====
+        if (userData.state === 0) {
+            // State 0: Send WELCOME, move to state 1
+            replyText = MSG_WELCOME;
+            nextState = 1;
+            console.log(`➡️ State 0 → 1: Sending WELCOME`);
+        }
+        else if (userData.state === 1) {
+            // State 1: Send MENU, move to state 2 (normal mode)
             replyText = MSG_MENU;
-            console.log(`➡️ State 2: Sending MENU to ${userId}`);
-        }
-        else if (msg === '1') {
-            replyText = MSG_OPT1;
-            console.log(`➡️ State 2: Sending OPTION 1 to ${userId}`);
-        }
-        else if (msg === '2') {
-            replyText = MSG_OPT2;
-            console.log(`➡️ State 2: Sending OPTION 2 to ${userId}`);
-        }
-        else if (msg === '3') {
-            replyText = MSG_OPT3;
-            console.log(`➡️ State 2: Sending OPTION 3 to ${userId}`);
-        }
-        else if (msg === '4') {
-            replyText = MSG_OPT4;
-            console.log(`➡️ State 2: Sending OPTION 4 to ${userId}`);
-        }
-        else if (msg === '5') {
-            replyText = MSG_OPT5;
-            console.log(`➡️ State 2: Sending OPTION 5 to ${userId}`);
-        }
-        else if (msg === '6') {
-            replyText = MSG_OPT6;
-            console.log(`➡️ State 2: Sending OPTION 6 to ${userId}`);
-        }
-        else if (msg === '7') {
-            replyText = MSG_OPT7;
-            console.log(`➡️ State 2: Sending OPTION 7 to ${userId}`);
+            nextState = 2;
+            console.log(`➡️ State 1 → 2: Sending MENU`);
         }
         else {
-            replyText = MSG_DEFAULT;
-            console.log(`➡️ State 2: Sending DEFAULT to ${userId}`);
+            // State 2+: Normal mode — check menu options
+            const msg = msgBody.trim();
+
+            if (msg === 'menu' || msg === 'help' || msg === 'උදව්') {
+                replyText = MSG_MENU;
+                console.log(`➡️ State 2: MENU requested`);
+            }
+            else if (msg === '1') {
+                replyText = MSG_OPT1;
+                console.log(`➡️ State 2: OPTION 1`);
+            }
+            else if (msg === '2') {
+                replyText = MSG_OPT2;
+                console.log(`➡️ State 2: OPTION 2`);
+            }
+            else if (msg === '3') {
+                replyText = MSG_OPT3;
+                console.log(`➡️ State 2: OPTION 3`);
+            }
+            else if (msg === '4') {
+                replyText = MSG_OPT4;
+                console.log(`➡️ State 2: OPTION 4`);
+            }
+            else if (msg === '5') {
+                replyText = MSG_OPT5;
+                console.log(`➡️ State 2: OPTION 5`);
+            }
+            else if (msg === '6') {
+                replyText = MSG_OPT6;
+                console.log(`➡️ State 2: OPTION 6`);
+            }
+            else if (msg === '7') {
+                replyText = MSG_OPT7;
+                console.log(`➡️ State 2: OPTION 7`);
+            }
+            else {
+                replyText = MSG_DEFAULT;
+                console.log(`➡️ State 2: DEFAULT reply (unknown: "${msgBody}")`);
+            }
         }
-    }
-    
-    // --- Send the reply ---
-    if (replyText) {
-        const success = await sendDirectMessage(userId, replyText);
-        if (success) {
+
+        // ===== SEND REPLY (FIXED: use client.sendMessage directly) =====
+        if (replyText) {
+            console.log(`📤 Sending reply to ${userId}...`);
+            
+            // Mark as seen first (optional — shows blue tick)
+            try {
+                const chat = await message.getChat();
+                await chat.sendSeen();
+            } catch (_) {}
+            
+            // Send the message using the built-in method
+            await client.sendMessage(userId, replyText);
+            
+            // Update state and cooldown
             userData.state = nextState;
             userData.lastReplyAt = Date.now();
-            console.log(`✅ Done. Next state: ${nextState}, cooldown until ${new Date(Date.now() + COOLDOWN_MS).toLocaleTimeString()}`);
-        } else {
-            console.log(`❌ Reply failed for ${userId}, state unchanged`);
+            
+            console.log(`✅ Reply sent successfully! State: ${nextState}`);
+            console.log(`⏰ Next reply allowed after: ${new Date(Date.now() + COOLDOWN_MS).toLocaleTimeString()}`);
         }
+    } catch (error) {
+        console.error(`❌ Error handling ${userId}:`, error.message || error);
     }
 }
 
-// ====================================================================
-// *** EVENTS ***
-// ====================================================================
+// ========== EVENTS ==========
+
+let pairingCodeRequested = false;
 
 client.on('qr', async (qr) => {
-    console.log('📱 QR received — requesting pairing code...');
+    console.log('\n📱 QR received — requesting pairing code...');
     if (!pairingCodeRequested && process.env.WHATSAPP_NUMBER) {
         pairingCodeRequested = true;
         try {
@@ -370,17 +336,23 @@ client.on('code', (code) => {
     console.log('================================================');
 });
 
-client.on('authenticated', () => console.log('🔐 Authenticated!'));
+client.on('authenticated', () => {
+    console.log('🔐 Authenticated successfully!');
+});
 
 client.on('ready', () => {
-    console.log('✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅');
+    console.log('\n✅✅✅ Bot සාර්ථකව සම්බන්ධ විය! Auto-reply ACTIVE ✅✅✅');
+    console.log('📌 Now anyone who messages this number will get auto-replies!\n');
     pairingCodeRequested = false;
 });
 
 client.on('disconnected', (reason) => {
     console.log(`⚠️ Disconnected: ${reason || 'unknown'}`);
     pairingCodeRequested = false;
-    setTimeout(() => { console.log('🔄 Reconnecting...'); client.initialize(); }, 5000);
+    console.log('🔄 Reconnecting in 5 seconds...');
+    setTimeout(() => {
+        client.initialize();
+    }, 5000);
 });
 
 client.on('auth_failure', (msg) => {
@@ -388,37 +360,21 @@ client.on('auth_failure', (msg) => {
     pairingCodeRequested = false;
 });
 
-// ====================================================================
-// *** MESSAGE HANDLER — pupPage එක ready වෙනකන් WAIT කරලා register කරන්න ***
-// ====================================================================
+// ========== MESSAGE HANDLER (SIMPLIFIED - NO pupPage CHECKS) ==========
+client.on('message_create', async (message) => {
+    // message_create fires for ALL messages (sent AND received)
+    // We only want incoming messages that are not from us
+    if (message.fromMe) return;
+    await handleMessage(message);
+});
+
+// Keep the 'message' event too as a backup
 client.on('message', async (message) => {
-    // pupPage එක ready ද කියලා check කරන්න
-    if (!client.pupPage || !client.pupPage.isConnected()) {
-        console.log('⏳ pupPage not ready yet, queueing message...');
-        // Retry after 2 seconds
-        setTimeout(async () => {
-            if (client.pupPage && client.pupPage.isConnected()) {
-                await handleMessage(message);
-            } else {
-                console.log('⏳ pupPage still not ready after retry, trying client.sendMessage fallback...');
-                // Pure fallback - just use sendMessage
-                const msg = message.body.toLowerCase().trim();
-                const userId = message.from;
-                let replyText = MSG_WELCOME;
-                try {
-                    await client.sendMessage(userId, replyText);
-                    userStates.set(userId, { state: 1, lastReplyAt: Date.now() });
-                    console.log(`✅ Fallback reply sent to ${userId}`);
-                } catch (e) {
-                    console.error(`❌ Fallback failed:`, e.message);
-                }
-            }
-        }, 2000);
-        return;
-    }
+    // message only fires for RECEIVED messages (not sent by us)
     await handleMessage(message);
 });
 
 // ========== INITIALIZE ==========
-console.log('🚀 Bot ආරම්භ වේ...');
+console.log('🚀 SHANA AI Bot ආරම්භ වේ...');
+console.log('⏳ WhatsApp Web එක load වෙනකන් ඉන්න...\n');
 client.initialize();
