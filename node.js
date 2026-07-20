@@ -35,20 +35,25 @@ const client = new Client({
     },
     // මේක අනිවාර්යයෙන්ම දාන්න, code එක එනකල් බලාගෙන ඉන්න වෙලාව වැඩි කරනවා
     authTimeoutMs: 60000 
-});       // මේක වෙනස් කරන්න
+});
+
 client.on('ready', async () => {
     console.log('✅ බොට් සාර්ථකව සම්බන්ධ විය!');
     
-    // Ready වුණාට පස්සේ තව තත්පර 5ක් ඉඳලා code එක ඉල්ලන්න
     setTimeout(async () => {
         try {
             console.log(`🔄 ${MY_PHONE_NUMBER} අංකය සඳහා Pairing Code ඉල්ලයි...`);
-            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER);
+            
+            // මේ පේළිය මෙහෙම වෙනස් කරන්න (mobile: true කියන එක එකතු කරන්න)
+            const pairingCode = await client.requestPairingCode(MY_PHONE_NUMBER, true); 
+            
             console.log('================================================');
             console.log(`🔢 ඔබේ Pairing Code එක: ${pairingCode}`);
             console.log('================================================');
         } catch (e) {
             console.error('❌ Pairing Code ලබා ගැනීමේ දෝෂය: ', e);
+            // වැරදුනොත් ආයෙත් එකපාරක් try කරන්න කියල log එකක් දාමු
+            console.log('⚠️ කරුණාකර නැවත උත්සාහ කරන්න...');
         }
     }, 5000); 
 });
