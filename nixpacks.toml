@@ -1,0 +1,9 @@
+[phases.install]
+nixPkgs = ["chromium", "chromedriver", "libxkbcommon", "libxshmfence"]
+
+[phases.setup]
+nixPkgs = ["chromium", "chromedriver", "libxkbcommon", "libxshmfence"]
+
+[environment]
+PUPPETEER_EXECUTABLE_PATH = "/nix/store/$(ls /nix/store | grep -i chromium | head -1)/bin/chromium"
+CHROMIUM_PATH = "/nix/store/$(ls /nix/store | grep -i chromium | head -1)/bin/chromium"
