@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs", "npm", "chromium", "chromedriver"]
+nixPkgs = ["nodejs", "chromium", "chromedriver"]
 
 [environment]
 PUPPETEER_SKIP_DOWNLOAD = "true"
