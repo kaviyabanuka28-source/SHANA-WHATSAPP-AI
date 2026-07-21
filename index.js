@@ -1,9 +1,42 @@
-// ==================== NO dotenv! Railway env variables directly ====================
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const { Telegraf } = require('telegraf');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+
+// ==================== CHROMIUM PATH DETECT ====================
+function findChromium() {
+    const paths = [
+        process.env.CHROMIUM_PATH,
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/snap/bin/chromium',
+        '/nix/store/*/bin/chromium'
+    ];
+    
+    // Search nix store for chromium
+    try {
+        const storePath = '/nix/store/';
+        if (fs.existsSync(storePath)) {
+            const dirs = fs.readdirSync(storePath);
+            const chromiumDir = dirs.find(d => d.includes('chromium'));
+            if (chromiumDir) {
+                return `/nix/store/${chromiumDir}/bin/chromium`;
+            }
+        }
+    } catch(e) {}
+    
+    // Check common paths
+    for (const p of paths) {
+        if (p && !p.includes('*') && fs.existsSync(p)) return p;
+    }
+    
+    return null;
+}
+
+const CHROMIUM_PATH = findChromium();
+console.log(`🔍 Chromium path: ${CHROMIUM_PATH || 'NOT FOUND - using auto-download'}`);
 
 // ==================== CONFIG ====================
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
@@ -16,16 +49,15 @@ let client = null;
 let isReady = false;
 let userCooldowns = new Map();
 const telegramChats = new Set();
+let currentPairPhone = null;
 
-function info(m) { console.log(`[${new Date().toLocaleTimeString()}] ✅ ${m}`); }
-function warn(m) { console.log(`[${new Date().toLocaleTimeString()}] ⚠️ ${m}`); }
-function error(m) { console.log(`[${new Date().toLocaleTimeString()}] ❌ ${m}`); }
+function log(m) { console.log(`[${new Date().toLocaleTimeString()}] ${m}`); }
 
 // ==================== EXPRESS ====================
 const app = express();
 app.get('/', (req, res) => res.json({ status: isReady ? 'connected' : 'disconnected', uptime: process.uptime() }));
 app.get('/health', (req, res) => res.send('OK'));
-app.listen(PORT, '0.0.0.0', () => info(`Express :${PORT}`));
+app.listen(PORT, '0.0.0.0', () => log('✅ Express :' + PORT));
 
 // ==================== MESSAGES ====================
 const MSG = {
@@ -49,87 +81,54 @@ HI සුබ දවසක් සර්,මිස් 😚
 7. AVIATOR HIGH ODD අනාලයිසින් ඉගෙන ගැනීමට ✅
 8. WhatsApp Ai Auto Replay Bot සාදාගැනීමට ✅
 
-කරුණාකර ඔබට අවශ්‍ය සේවාව අංකය ලබාදෙන්න!
+කරුණාකර අංකය ලබාදෙන්න!
 --------------------------------
 SOFTWARE DEVELOPER SHANA 🐛`,
 
     opt1: `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗
-*1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...*
+*1X BET සහ WITHDRAWAL*
 
-*SHANA SERVICE __💯*
+💵💵 *මුදල් තැන්පත් කිරීම*💵💵
+✅ Account Deposit / Withdraw
 
-    💵💵 *මුදල් තැන්පත් කිරීම*💵💵
-✅ *Account Deposit*✅ *Account Withdraw*
+🔯 BOC - 94118758 - MINNERIYA - K.G LAKSHAN KAVISHKA KUMARA
+✳️ PEOPLE BANK - 006200150094114 - K.G.LAKSHAN KAVISHKA KUMARA - HIGURAKGODA
+✳️ ez cash - 0764104588 - LAKSHAN (අඩුම රු.20/-)
+✡️ Binance - 1066282628 - LAKSHAN
+🔯 ipay - 0764104588 - Lakshan
+✡️ Dialog Finance PLC - 0010 2217 5776 - LAKSHAN KAVISHKA KUMARA
 
-🔯 BOC
-🔯 94118758
-🔯MINNERIYA
-🔯 K.G LAKSHAN KAVISHKA KUMARA
+❏ DEPOSIT - min 2-5 😍
+❏ WITHDRAW - min 10-30 😍
+👉 REMARK යටතේ PLAYER ID අනිවාර්යයෙන්ම
+✺ තෙවනපාර්ශවීය ගෙවීම් බාර නොගැනේ ❌`,
 
-✳️PEOPLE BANK : 006200150094114
-✳️K.G.LAKSHAN KAVISHKA KUMARA
-✳️HIGURAKGODA
+    opt2: `❏ SHANA WITHDRAW ✺
+MINI Rs 250-/
 
-✳️ ez cash : 0764104588
-✳️LAKSHAN ( open )
-( අඩුම රුපියල් 20-/ දැමීමට කාරුණික වන්න )
-
-✡️ Binance
-✡️1066282628
-✡️ LAKSHAN
-
-🔯ipay
-🔯0764104588
-🔯Lakshan
-
-✡️Dialog Finance PLC
-✡️0010 2217 5776
-✡️ LAKSHAN KAVISHKA KUMARA
-
-*❏ DEPOSIT - minute 2-5 😍*
-*❏ WITHDRAW - minute 10-30 😍*
-👉👉 *සැ.යු.* : REMARK යටතේ PLAYER ID සඳහන් කල යුතුමය.
-⚠️ 1X BET, BET වචන භාවිතා නොකල යුතුය...
-
-👉සැ.යු.: මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් SLIP/SCREENSHOT එවන්න.
-✺ තෙවනපාර්ශවීය සල්ලි දැමීම් බාරගනු නොලැබේ ❌`,
-
-    opt2: `*❏ SHANA WITHDRAW ADDRESS ✺*
-
-_MINI Withdraw Rs 250-/_
-
-පියවර 1
-* 1Xbet app එක open කරන්න → menu යන්න.
-* උඩම ඇති setting අයිකන් එක ක්ලික් කරන්න
-* withdraw කියාලා අයිකන් එක ඔබන්න
-* 1XBET CASH method එක තෝරන්න
-
-➢ ඕනි ගාන ගහන්න.
-❏ city: minneriya
-❏ street: Lakshan service (24/7)
-
-➢ Back → Login → withdraw request → get code
-➢ Code එක screenshot කරලා මට එවන්න.
-එච්චරයි ✅`,
+1. 1Xbet app → Menu → Settings → Withdraw
+2. 1XBET CASH method එක තෝරන්න
+3. මුදල ඇතුලත් කරන්න
+4. city: minneriya / street: Lakshan service (24/7)
+5. Back → Login → Withdraw Request
+6. Get Code → Screenshot → Send to me
+✅`,
 
     opt3: `VIP 1XBET PROMO CODE
 Lashan1x
 👆👆👆👆
 200% DEPOSIT BONUS ✅`,
 
-    opt4: `0758862130/0742381405
-Call එකකින් 🤝`,
+    opt4: `0758862130/0742381405 🤝`,
 
-    opt5: `AI BOT -0758862130/0742381405/0703557568
+    opt5: `0758862130/0742381405/0703557568
 Call, MG 24/7 ✅`,
 
-    opt6: `0758862130/0742381405
-Call එකකින් 🤝`,
+    opt6: `0758862130/0742381405 🤝`,
 
-    opt7: `0758862130/0742381405
-Call එකකින් 🤝`,
+    opt7: `0758862130/0742381405 🤝`,
 
-    opt8: `AI BOT - අඩුම මුදලට 24/7 AUTO reply Bot
+    opt8: `අඩුම මුදලට 24/7 AUTO reply Bot
 0758862130 ✅`,
 
     defaultReply: `AI BOT -
@@ -139,10 +138,7 @@ Call එකකින් 🤝`,
 
 function getReply(text) {
     const t = text.trim();
-    const map = {
-        '1': MSG.opt1, '2': MSG.opt2, '3': MSG.opt3, '4': MSG.opt4,
-        '5': MSG.opt5, '6': MSG.opt6, '7': MSG.opt7, '8': MSG.opt8
-    };
+    const map = { '1': MSG.opt1, '2': MSG.opt2, '3': MSG.opt3, '4': MSG.opt4, '5': MSG.opt5, '6': MSG.opt6, '7': MSG.opt7, '8': MSG.opt8 };
     return map[t] || null;
 }
 
@@ -152,27 +148,19 @@ function tgNotify(text) {
     }
 }
 
-// ==================== WHATSAPP CLIENT ====================
-async function createWhatsAppClient(pairPhone = null) {
-    info('🔄 Initializing WhatsApp Web Client...');
-    
-    if (pairPhone) {
-        try { 
-            fs.rmSync(SESSION_DIR, { recursive: true, force: true }); 
-            info('🧹 Session cleaned for fresh pair');
-        } catch(e) {}
-    }
-    
-    if (!fs.existsSync(SESSION_DIR)) {
-        fs.mkdirSync(SESSION_DIR, { recursive: true });
-    }
+// ==================== WHATSAPP ====================
+async function startWhatsApp(pairPhone = null) {
+    try {
+        log('🔄 Initializing WhatsApp...');
+        
+        if (pairPhone) {
+            try { fs.rmSync(SESSION_DIR, { recursive: true, force: true }); } catch(e) {}
+            log('🧹 Session cleaned');
+        }
+        
+        if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
-    client = new Client({
-        authStrategy: new LocalAuth({
-            clientId: 'shana-bot',
-            dataPath: SESSION_DIR
-        }),
-        puppeteer: {
+        const puppeteerOpts = {
             headless: true,
             args: [
                 '--no-sandbox',
@@ -182,101 +170,122 @@ async function createWhatsAppClient(pairPhone = null) {
                 '--no-zygote',
                 '--single-process'
             ]
-        },
-        webVersionCache: {
-            type: 'remote',
-            remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+        };
+        
+        // Set custom chromium path if found
+        if (CHROMIUM_PATH) {
+            puppeteerOpts.executablePath = CHROMIUM_PATH;
+            log('🔧 Using system Chromium');
+        } else {
+            log('📥 Chromium will be auto-downloaded by puppeteer');
         }
-    });
 
-    client.on('ready', () => {
-        isReady = true;
-        info('✅ WhatsApp READY!');
-        info(`   Number: ${client.info?.wid?.user || 'unknown'}`);
-        tgNotify('✅ *WhatsApp Bot Connected!*\nAuto-reply active 24/7 🎉');
-    });
-
-    client.on('disconnected', (reason) => {
-        isReady = false;
-        warn(`Disconnected: ${reason}`);
-    });
-
-    client.on('auth_failure', (msg) => {
-        error(`Auth failure: ${msg}`);
-    });
-
-    client.on('message', async (message) => {
-        try {
-            if (message.fromMe) return;
-            if (message.from.includes('@g.us')) return;
-            if (message.from === 'status@broadcast') return;
-
-            const jid = message.from;
-            const phone = jid.split('@')[0];
-            const text = message.body?.trim();
-            if (!text) return;
-
-            info(`📩 ${phone}: "${text.substring(0, 40)}"`);
-
-            const now = Date.now();
-            const last = userCooldowns.get(jid) || 0;
-
-            if ((now - last) < COOLDOWN_MS && !['1','2','3','4','5','6','7','8'].includes(text)) {
-                return;
+        client = new Client({
+            authStrategy: new LocalAuth({
+                clientId: 'shana-bot',
+                dataPath: SESSION_DIR
+            }),
+            puppeteer: puppeteerOpts,
+            webVersionCache: {
+                type: 'remote',
+                remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
             }
+        });
 
-            const optionReply = getReply(text);
-            let replyText;
-            if (optionReply) {
-                replyText = optionReply;
-            } else {
-                replyText = `${MSG.welcome}\n\n${MSG.menu}`;
+        client.on('ready', () => {
+            isReady = true;
+            log('✅ WhatsApp READY!');
+            log(`   Number: ${client.info?.wid?.user || 'unknown'}`);
+            tgNotify('✅ *SHANA WhatsApp Bot Connected!* 🎉');
+            
+            if (currentPairPhone) {
+                tgNotify(`✅ *Successfully Connected!*\nWhatsApp Bot is now active 24/7.\nAuto-reply system running.`);
+                currentPairPhone = null;
             }
+        });
 
-            await message.reply(replyText);
-            userCooldowns.set(jid, now);
-            info(`✅ Replied to ${phone}`);
-        } catch (err) {
-            error(`Msg error: ${err.message}`);
-        }
-    });
+        client.on('disconnected', (reason) => {
+            isReady = false;
+            log('⚠️ Disconnected: ' + reason);
+        });
 
-    try {
-        info('🔄 Launching Chromium browser...');
+        client.on('auth_failure', (msg) => {
+            log('❌ Auth failure: ' + msg);
+        });
+
+        client.on('message', async (message) => {
+            try {
+                if (message.fromMe) return;
+                if (message.from.includes('@g.us')) return;
+                if (message.from === 'status@broadcast') return;
+
+                const jid = message.from;
+                const phone = jid.split('@')[0];
+                const text = message.body?.trim();
+                if (!text) return;
+
+                log(`📩 ${phone}: "${text.substring(0, 40)}"`);
+
+                const now = Date.now();
+                const last = userCooldowns.get(jid) || 0;
+
+                if ((now - last) < COOLDOWN_MS && !['1','2','3','4','5','6','7','8'].includes(text)) {
+                    return;
+                }
+
+                const optionReply = getReply(text);
+                let replyText;
+                if (optionReply) {
+                    replyText = optionReply;
+                } else {
+                    replyText = `${MSG.welcome}\n\n${MSG.menu}`;
+                }
+
+                await message.reply(replyText);
+                userCooldowns.set(jid, now);
+                log(`✅ Replied to ${phone}`);
+            } catch (err) {
+                log('❌ Msg: ' + err.message);
+            }
+        });
+
+        log('🔄 Launching browser...');
         await client.initialize();
         
+        // Generate pair code if requested
         if (pairPhone) {
-            info(`🔑 Generating pair code for ${pairPhone}...`);
+            currentPairPhone = pairPhone;
+            log(`🔑 Pairing ${pairPhone}...`);
             
             await new Promise(r => setTimeout(r, 5000));
             
             try {
                 const code = await client.generatePairingCode(pairPhone);
                 const formatted = code.match(/.{1,4}/g)?.join('-') || code;
-                info(`✅ Pair code: ${formatted}`);
+                log(`✅ Pair code: ${formatted}`);
                 
-                const msg = `🔑 *SHANA WhatsApp Pair Code*
+                const msg = `🔑 *SHANA WhatsApp Pair Code Ready!*
 ━━━━━━━━━━━━━━━━━━━━━
 🔑 *${formatted}*
 ━━━━━━━━━━━━━━━━━━━━━
 
 📱 *Connect කරන්න:*
-1️⃣ WhatsApp → Settings
-2️⃣ Linked Devices → *Link a Device*
-3️⃣ Code එක Enter කරන්න: *${formatted}*
+1️⃣ WhatsApp Open කරන්න
+2️⃣ Settings → Linked Devices → Link a Device
+3️⃣ Code එක Enter කරන්න
 
-⏳ විනාඩි 2කින් Expire!`;
+⏳ Code expires in 2 minutes!`;
                 
                 tgNotify(msg);
-            } catch (pairErr) {
-                error(`Pair code: ${pairErr.message}`);
-                tgNotify(`❌ Error: ${pairErr.message}\n\nTry again with /pair command.`);
+            } catch (err) {
+                log('❌ Pair code error: ' + err.message);
+                tgNotify('❌ Pair code error. Send number again.');
             }
         }
-    } catch (initErr) {
-        error(`Init error: ${initErr.message}`);
+    } catch (err) {
+        log('❌ Init error: ' + err.message);
         if (pairPhone) {
-            tgNotify(`❌ WhatsApp init error. Use /pair again.`);
+            tgNotify('❌ WhatsApp error. Use /pair 94XXXXXXXXX again.');
         }
     }
 }
@@ -286,8 +295,7 @@ let tgBot;
 
 async function startTelegram() {
     if (!TELEGRAM_BOT_TOKEN) {
-        warn('No TELEGRAM_BOT_TOKEN in environment!');
-        info('Add TELEGRAM_BOT_TOKEN in Railway Variables');
+        log('⚠️ NO TELEGRAM_BOT_TOKEN! Add to Railway Variables!');
         return;
     }
 
@@ -298,16 +306,18 @@ async function startTelegram() {
         ctx.reply(
             `👋 *SHANA WhatsApp Bot* 🤖
 
-WhatsApp bot connect කරගැනීමට number එක එවන්න:
+WhatsApp connect කරගැනීමට number එක එවන්න:
 
 \`9476XXXXXXX\`
 
-⚡ Code එක තත්පර 15-30 ඇතුලත එයි!`
+⚡ Code එක තත්පර 15-30 ඇතුලත එයි!
+
+*(අංකය: @BotFather ගෙන් නව Token එකක් ගත්තාද?)`
         );
     });
 
-    tgBot.command('help', (ctx) => {
-        ctx.reply(`/start - Pair Code\n/pair 94XXXXXXXXX - Generate code\n/status - Bot status`);
+    tgBot.help((ctx) => {
+        ctx.reply(`/start - Pair Code\n/pair 94XXXXXXXXX - Generate\n/status - Bot status`);
     });
 
     tgBot.command('status', (ctx) => {
@@ -320,7 +330,7 @@ Uptime: ${Math.floor(process.uptime() / 60)} min`);
     tgBot.command('pair', async (ctx) => {
         const args = ctx.message.text.split(' ');
         if (args.length < 2) {
-            ctx.reply('Usage: /pair 94XXXXXXXXX');
+            ctx.reply('Usage: /pair 9476XXXXXXX');
             return;
         }
         const digits = args[1].replace(/[^0-9]/g, '');
@@ -332,7 +342,7 @@ Uptime: ${Math.floor(process.uptime() / 60)} min`);
         try { if (client) await client.destroy(); } catch(e) {}
         isReady = false;
         await new Promise(r => setTimeout(r, 1000));
-        await createWhatsAppClient(digits);
+        await startWhatsApp(digits);
     });
 
     tgBot.on('text', async (ctx) => {
@@ -341,34 +351,35 @@ Uptime: ${Math.floor(process.uptime() / 60)} min`);
         telegramChats.add(ctx.chat.id);
 
         if (digits.length >= 9 && digits.length <= 15 && !text.startsWith('/')) {
-            await ctx.reply(`⏳ Generating WhatsApp Pair Code...`);
+            await ctx.reply(`⏳ Generating Pair Code... (15-30 seconds)`);
             try { if (client) await client.destroy(); } catch(e) {}
             isReady = false;
             await new Promise(r => setTimeout(r, 1000));
-            await createWhatsAppClient(digits);
+            await startWhatsApp(digits);
         } else if (!text.startsWith('/')) {
-            ctx.reply('📱 ඔබගේ WhatsApp number එක එවන්න\n\nඋදා: `9476XXXXXXX`');
+            ctx.reply('📱 WhatsApp number එක එවන්න\n\nඋදා: `9476XXXXXXX`');
         }
     });
 
     await tgBot.launch();
-    info('🤖 Telegram Bot Started');
-
+    log('🤖 Telegram Bot Started!');
+    
     const hasSession = fs.existsSync(path.join(SESSION_DIR, 'shana-bot'));
     if (hasSession) {
-        info('🔑 Existing session. Auto-connecting...');
-        createWhatsAppClient();
-        tgNotify('🔄 *SHANA Bot Restarted*\nAuto-connecting...');
+        log('🔑 Existing session found. Connecting...');
+        startWhatsApp();
     } else {
-        info('📱 Send number to Telegram bot to pair!');
+        log('📱 Send number to Telegram to pair!');
     }
 }
 
 // ==================== MAIN ====================
 async function main() {
-    info('🚀 SHANA WhatsApp AI Bot v6.0');
-    info('⚡ 100% Railway Compatible');
-    info('');
+    log('🚀 SHANA WhatsApp AI Bot v7.0 FINAL');
+    log('');
+    log('📌 Telegram Bot Token: ' + (TELEGRAM_BOT_TOKEN ? '✅ Set' : '❌ NOT SET'));
+    log('📌 Chromium Path: ' + (CHROMIUM_PATH || 'Auto-download'));
+    log('');
 
     if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
@@ -386,6 +397,6 @@ async function main() {
 }
 
 main().catch(err => {
-    error(`Fatal: ${err.message}`);
+    log('❌ Fatal: ' + err.message);
     process.exit(1);
 });
