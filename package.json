@@ -1,7 +1,7 @@
 {
   "name": "shana-whatsapp-bot",
-  "version": "6.0.0",
-  "description": "SHANA WhatsApp AI Bot - 100% Working",
+  "version": "7.0.0",
+  "description": "SHANA WhatsApp AI Bot - FINAL WORKING",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
