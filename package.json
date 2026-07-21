@@ -1,4 +1,15 @@
-const browser = await puppeteer.launch({
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-});
+{
+  "name": "shana-whatsapp-bot",
+  "version": "8.0.0",
+  "description": "SHANA WhatsApp AI Bot - 100% Railway Working",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.26.0",
+    "telegraf": "^4.16.3",
+    "express": "^4.21.0",
+    "puppeteer": "^22.14.0"
+  }
+}
