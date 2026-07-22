@@ -1,4 +1,4 @@
-// Telegram Bot for SHANA WhatsApp Pair Code Generation
+// Telegram Bot for WhatsApp Pair Code Generation
 const config = require('./config');
 
 let botSock = null;
@@ -118,4 +118,5 @@ Pair Code එකක් ගන්න:
     }
 }
 
+// ========== 🔥 FIX: මෙතන module.exports එක හරියට දාන්න ඕනෙ ==========
 module.exports = { startTelegramBot, setTelegramSocket };
