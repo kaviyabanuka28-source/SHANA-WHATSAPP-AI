@@ -18,37 +18,53 @@ console.log(`
 `);
 
 // ============================================
-// START API SERVER
+// START API SERVER FIRST
 // ============================================
 console.log('🌐 Starting API Server...');
 createAPIServer();
 console.log('✅ API Server started');
 
 // ============================================
-// MAIN BOT FUNCTION (async)
+// MAIN BOT FUNCTION
 // ============================================
 async function startBot() {
     console.log('\n🔄 Initializing WhatsApp connection...');
 
-    // ========== Session directory ==========
+    // Session directory
     const sessionDir = path.join(__dirname, config.sessionDir);
     if (!fs.existsSync(sessionDir)) {
         fs.mkdirSync(sessionDir, { recursive: true });
         console.log('📁 Session directory created');
     }
 
-    // ========== DYNAMIC IMPORT Baileys (ESM) from CJS ==========
+    // ========== DYNAMIC IMPORT BAILEYS (ESM from CJS) ==========
     console.log('📦 Loading Baileys library...');
-    const baileys = await import('@whiskeysockets/baileys');
-    const makeWASocket = baileys.default;
-    const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeInMemoryStore } = baileys;
+    
+    // 🟢 FIX: Use named exports directly, NOT .default
+    const baileysModule = await import('@whiskeysockets/baileys');
+    
+    // Extract named exports
+    const makeWASocket = baileysModule.makeWASocket;
+    const useMultiFileAuthState = baileysModule.useMultiFileAuthState;
+    const DisconnectReason = baileysModule.DisconnectReason;
+    const fetchLatestBaileysVersion = baileysModule.fetchLatestBaileysVersion;
+    const makeInMemoryStore = baileysModule.makeInMemoryStore;
+    const Browsers = baileysModule.Browsers;
 
+    console.log(`📦 Baileys loaded successfully`);
+    console.log(`   makeWASocket: ${typeof makeWASocket}`);
+    console.log(`   useMultiFileAuthState: ${typeof useMultiFileAuthState}`);
+
+    // Load auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    
+    // Get latest version
     const { version, isLatest } = await fetchLatestBaileysVersion();
     console.log(`📱 WhatsApp Web Version: ${version.join('.')} ${isLatest ? '(latest)' : ''}`);
 
     const logger = pino({ level: 'silent' });
 
+    // ========== CREATE SOCKET ==========
     const sock = makeWASocket({
         version,
         logger,
@@ -59,10 +75,11 @@ async function startBot() {
         markOnlineOnConnect: true,
         syncFullHistory: false,
         generateHighQualityLink: true,
-        browser: ['Chrome (Linux)', '', ''],
+        browser: Browsers?.ubuntu('Chrome') || ['Chrome (Linux)', '', ''],
         getMessage: async () => null
     });
 
+    // Pass socket to API server
     setBotSocket(sock);
 
     // ============================================
@@ -71,21 +88,27 @@ async function startBot() {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
 
+        if (connection === 'connecting') {
+            console.log('⏳ Connecting to WhatsApp...');
+            setConnectionStatus('connecting');
+        }
+
         if (connection === 'open') {
-            console.log('\n✅ ✅ ✅ ===== BOT CONNECTED SUCCESSFULLY! =====');
+            console.log('\n✅ ✅ ✅ ===== BOT CONNECTED! =====');
             console.log(`   📱 ${config.botName} is ONLINE`);
             console.log(`   🕐 ${new Date().toLocaleString()}`);
-            console.log('==============================================\n');
+            console.log('==================================\n');
             setConnectionStatus('connected');
+            
+            console.log(`🔗 Get Pair Code: http://localhost:${config.port}/pair?phone=9475XXXXXXX\n`);
         }
 
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            
-            console.log(`\n⚠️ Connection closed. Reconnect: ${shouldReconnect}`);
+            const isLoggedOut = lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut;
+            console.log(`\n⚠️ Connection closed. Logged out: ${isLoggedOut}`);
             setConnectionStatus('reconnecting');
             
-            if (shouldReconnect) {
+            if (!isLoggedOut) {
                 console.log('🔄 Reconnecting in 3 seconds...');
                 setTimeout(() => startBot(), 3000);
             } else {
@@ -94,16 +117,19 @@ async function startBot() {
                     fs.rmSync(sessionDir, { recursive: true, force: true });
                 }
                 setConnectionStatus('logged_out');
+                console.log('🔄 Restarting for fresh pair...');
                 setTimeout(() => startBot(), 2000);
             }
         }
     });
 
-    // Credentials update
+    // ============================================
+    // CREDENTIALS UPDATE
+    // ============================================
     sock.ev.on('creds.update', saveCreds);
 
     // ============================================
-    // MESSAGE HANDLER
+    // MESSAGE HANDLER - AUTO REPLY
     // ============================================
     sock.ev.on('messages.upsert', async ({ messages }) => {
         for (const msg of messages) {
@@ -116,42 +142,52 @@ async function startBot() {
 
             const sender = msg.key.participant || jid;
             const pushName = msg.pushName || 'User';
+            const userNumber = jid.split('@')[0];
 
-            console.log(`\n📩 [${new Date().toLocaleTimeString()}] ${pushName}: ${text || '(empty)'}`);
+            console.log(`\n📩 [${new Date().toLocaleTimeString()}] From: ${pushName} (${userNumber})`);
+            console.log(`   Message: ${text || '(empty)'}`);
 
             try {
                 const cooldown = checkCooldown(sender);
                 
                 if (cooldown.allowed) {
-                    // Welcome + Menu
+                    // 1. Welcome message
                     await sock.sendMessage(jid, { text: getWelcomeMessage() });
-                    await new Promise(r => setTimeout(r, 500));
+                    console.log(`   ✅ Welcome sent`);
+                    
+                    await new Promise(r => setTimeout(r, 600));
+                    
+                    // 2. Service menu
                     await sock.sendMessage(jid, { text: getServiceMenu() });
+                    console.log(`   ✅ Menu sent`);
+                    
                     updateCooldown(sender);
                     
-                    // Specific response
+                    // 3. Specific response based on input
                     if (text.trim().length > 0) {
                         const userResponse = getResponse(text);
                         if (userResponse !== getServiceMenu()) {
                             await new Promise(r => setTimeout(r, 1000));
                             await sock.sendMessage(jid, { text: userResponse });
+                            console.log(`   ✅ Reply sent for: ${text}`);
                         }
                     }
                 } else {
-                    if (text.trim()) {
+                    console.log(`   ⏳ Cooldown: ${cooldown.remaining}min`);
+                    if (text.trim().length > 0) {
                         await sock.sendMessage(jid, { 
                             text: `⏳ කරුණාකර තව විනාඩි ${cooldown.remaining}කට පසුව නැවත උත්සහ කරන්න... 😊` 
                         });
                     }
                 }
             } catch (error) {
-                console.error(`❌ Error: ${error.message}`);
+                console.error(`   ❌ Error: ${error.message}`);
             }
         }
     });
 
-    console.log('\n🚀 Bot ready! Waiting for messages...');
-    console.log(`🔗 Pair Code: http://localhost:${config.port}/pair?phone=9475XXXXXXX\n`);
+    console.log('\n🚀 ✅ Bot initialized and ready!');
+    console.log(`📱 Waiting for WhatsApp messages...\n`);
 }
 
 // ============================================
@@ -159,20 +195,27 @@ async function startBot() {
 // ============================================
 startBot().catch(error => {
     console.error('\n❌ Fatal Error:', error.message);
-    console.log('🔄 Restarting in 5 seconds...');
+    console.error('   Stack:', error.stack?.split('\n')[1]);
+    console.log('🔄 Auto-restarting in 5 seconds...');
     setTimeout(() => startBot(), 5000);
 });
 
-// Heartbeat
+// ============================================
+// HEARTBEAT (every 5 minutes)
+// ============================================
 setInterval(() => {
-    console.log(`💓 [${new Date().toLocaleTimeString()}] Bot alive`);
+    console.log(`💓 [${new Date().toLocaleTimeString()}] ${config.botName} Bot running`);
 }, 300000);
 
-// Crash handler
+// ============================================
+// CRASH HANDLERS
+// ============================================
 process.on('uncaughtException', (err) => {
-    console.error('💥 Crash:', err.message);
+    console.error('💥 Uncaught Exception:', err.message);
+    console.log('🔄 Restarting...');
     setTimeout(() => startBot(), 3000);
 });
+
 process.on('unhandledRejection', (err) => {
-    console.error('💥 Rejection:', err.message);
+    console.error('💥 Unhandled Rejection:', err.message);
 });
