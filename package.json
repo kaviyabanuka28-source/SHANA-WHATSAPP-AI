@@ -1,7 +1,8 @@
 {
   "name": "shana-whatsapp-bot",
   "version": "8.0.0",
-  "description": "SHANA WhatsApp AI Auto Reply Bot - No Browser Required",
+  "type": "module",
+  "description": "SHANA WhatsApp AI Auto Reply Bot - ESM Fixed",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,8 +10,6 @@
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.9",
     "pino": "^8.21.0",
-    "express": "^4.21.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7"
+    "express": "^4.21.0"
   }
 }
