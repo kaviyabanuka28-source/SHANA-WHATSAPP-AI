@@ -5,7 +5,7 @@ const path = require('path');
 const config = require('./config');
 const { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown } = require('./responses');
 const { createAPIServer, setBotSocket, setConnectionStatus } = require('./api-server');
-const { startTelegramBot, setTelegramSocket } = require('./telegram-bot'); // 🔥 ADDED
+const { startTelegramBot, setTelegramSocket } = require('./telegram-bot');
 
 // ============================================
 // BANNER
@@ -17,6 +17,11 @@ console.log(`
 ║         🚫 NO BROWSER REQUIRED        ║
 ╚═══════════════════════════════════════╝
 `);
+
+// ============================================
+// TRACK WHETHER TELEGRAM BOT HAS BEEN STARTED
+// ============================================
+let telegramBotStarted = false;
 
 // ============================================
 // START API SERVER FIRST
@@ -82,6 +87,18 @@ async function startBot() {
         }
     } catch (e) {
         // Telegram bot optional - WhatsApp bot continues working
+    }
+
+    // ========== START TELEGRAM BOT ONLY ONCE ==========
+    if (!telegramBotStarted) {
+        telegramBotStarted = true;
+        try {
+            startTelegramBot().catch(err => {
+                console.log('⚠️ Telegram bot error (non-fatal):', err.message);
+            });
+        } catch (e) {
+            console.log('⚠️ Could not start Telegram bot:', e.message);
+        }
     }
 
     // ============================================
@@ -181,15 +198,6 @@ async function startBot() {
             }
         }
     });
-
-    // ========== START TELEGRAM BOT ==========  // 🔥 ADDED
-    try {
-        startTelegramBot().catch(err => {
-            console.log('⚠️ Telegram bot error (non-fatal):', err.message);
-        });
-    } catch (e) {
-        console.log('⚠️ Could not start Telegram bot:', e.message);
-    }
 
     console.log('\n🚀 ✅ Bot initialized and ready!');
     console.log(`📱 Waiting for WhatsApp messages...\n`);
