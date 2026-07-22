@@ -1,8 +1,17 @@
+// ============================================
+// CRYPTO POLYFILL - Baileys සඳහා (Node < 19 fix)
+// ============================================
+const { webcrypto } = require('node:crypto');
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
+
 const express = require('express');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+// ... ඉතිරි code එක එහෙමම තියාගන්න
 const { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown } = require('./responses');
 const { createAPIServer, setBotSocket, setConnectionStatus } = require('./api-server');
 const { startTelegramBot, setTelegramSocket } = require('./telegram-bot');
