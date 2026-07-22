@@ -135,7 +135,7 @@ async function startBot() {
             console.log('==================================\n');
             setConnectionStatus('connected');
             
-            console.log(`🔗 Get Pair Code: http://localhost:${config.port}/pair?phone=9475XXXXXXX\n`);
+            console.log(`🔗 Get Pair Code: http://localhost:${config.port}/pair?phone=94762381405\n`);
         }
 
         if (connection === 'close') {
