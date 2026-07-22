@@ -1,9 +1,8 @@
-const config = require('./config');
+import config from './config.js';
 
-// User cooldown tracker
 const userCooldowns = new Map();
 
-function checkCooldown(userJid) {
+export function checkCooldown(userJid) {
     const lastMsg = userCooldowns.get(userJid);
     const now = Date.now();
     if (lastMsg && (now - lastMsg) < config.cooldownTime) {
@@ -13,12 +12,11 @@ function checkCooldown(userJid) {
     return { allowed: true, remaining: 0 };
 }
 
-function updateCooldown(userJid) {
+export function updateCooldown(userJid) {
     userCooldowns.set(userJid, Date.now());
 }
 
-// Welcome message
-function getWelcomeMessage() {
+export function getWelcomeMessage() {
     return `AI BOT - ( SHANA කියලා ෆවෆුල් ලොගො එකකුත් මේ මැසෙජ් එකත් එක්ක වැටෙන්න හදන්න)
 SHANA AI BOT SYSTEM 🕹️
 -----------------------------
@@ -27,8 +25,7 @@ HI සුබ දවසක් සර්,මිස් 😚
 ඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!`;
 }
 
-// Service menu
-function getServiceMenu() {
+export function getServiceMenu() {
     return `AI BOT -
 📜 SHANA All SERVICE 
 
@@ -48,8 +45,7 @@ function getServiceMenu() {
 SOFTWARE DEVELOPR SHANA 🐛`;
 }
 
-// Get response based on user input
-function getResponse(userInput) {
+export function getResponse(userInput) {
     const input = userInput.trim().toLowerCase();
     
     switch(input) {
@@ -162,5 +158,3 @@ Call , Mg 24/7 Ok ✅`;
 ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
     }
 }
-
-module.exports = { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown };
