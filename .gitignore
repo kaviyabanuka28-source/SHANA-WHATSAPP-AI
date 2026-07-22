@@ -1,0 +1,5 @@
+node_modules/
+session/
+shana_auth_info.json
+.env
+*.log
