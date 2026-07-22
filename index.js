@@ -5,6 +5,7 @@ const path = require('path');
 const config = require('./config');
 const { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown } = require('./responses');
 const { createAPIServer, setBotSocket, setConnectionStatus } = require('./api-server');
+const { startTelegramBot, setTelegramSocket } = require('./telegram-bot'); // 🔥 ADDED
 
 // ============================================
 // BANNER
@@ -40,10 +41,8 @@ async function startBot() {
     // ========== DYNAMIC IMPORT BAILEYS (ESM from CJS) ==========
     console.log('📦 Loading Baileys library...');
     
-    // 🟢 FIX: Use named exports directly, NOT .default
     const baileysModule = await import('@whiskeysockets/baileys');
     
-    // Extract named exports
     const makeWASocket = baileysModule.makeWASocket;
     const useMultiFileAuthState = baileysModule.useMultiFileAuthState;
     const DisconnectReason = baileysModule.DisconnectReason;
@@ -52,19 +51,13 @@ async function startBot() {
     const Browsers = baileysModule.Browsers;
 
     console.log(`📦 Baileys loaded successfully`);
-    console.log(`   makeWASocket: ${typeof makeWASocket}`);
-    console.log(`   useMultiFileAuthState: ${typeof useMultiFileAuthState}`);
 
-    // Load auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    
-    // Get latest version
     const { version, isLatest } = await fetchLatestBaileysVersion();
     console.log(`📱 WhatsApp Web Version: ${version.join('.')} ${isLatest ? '(latest)' : ''}`);
 
     const logger = pino({ level: 'silent' });
 
-    // ========== CREATE SOCKET ==========
     const sock = makeWASocket({
         version,
         logger,
@@ -79,8 +72,8 @@ async function startBot() {
         getMessage: async () => null
     });
 
-    // Pass socket to API server
     setBotSocket(sock);
+    setTelegramSocket(sock); // 🔥 ADDED - Pass socket to Telegram bot
 
     // ============================================
     // CONNECTION UPDATE
@@ -123,13 +116,10 @@ async function startBot() {
         }
     });
 
-    // ============================================
-    // CREDENTIALS UPDATE
-    // ============================================
     sock.ev.on('creds.update', saveCreds);
 
     // ============================================
-    // MESSAGE HANDLER - AUTO REPLY
+    // MESSAGE HANDLER
     // ============================================
     sock.ev.on('messages.upsert', async ({ messages }) => {
         for (const msg of messages) {
@@ -151,19 +141,16 @@ async function startBot() {
                 const cooldown = checkCooldown(sender);
                 
                 if (cooldown.allowed) {
-                    // 1. Welcome message
                     await sock.sendMessage(jid, { text: getWelcomeMessage() });
                     console.log(`   ✅ Welcome sent`);
                     
                     await new Promise(r => setTimeout(r, 600));
                     
-                    // 2. Service menu
                     await sock.sendMessage(jid, { text: getServiceMenu() });
                     console.log(`   ✅ Menu sent`);
                     
                     updateCooldown(sender);
                     
-                    // 3. Specific response based on input
                     if (text.trim().length > 0) {
                         const userResponse = getResponse(text);
                         if (userResponse !== getServiceMenu()) {
@@ -186,6 +173,15 @@ async function startBot() {
         }
     });
 
+    // ========== START TELEGRAM BOT ==========  // 🔥 ADDED
+    try {
+        startTelegramBot().catch(err => {
+            console.log('⚠️ Telegram bot error (non-fatal):', err.message);
+        });
+    } catch (e) {
+        console.log('⚠️ Could not start Telegram bot:', e.message);
+    }
+
     console.log('\n🚀 ✅ Bot initialized and ready!');
     console.log(`📱 Waiting for WhatsApp messages...\n`);
 }
@@ -200,16 +196,10 @@ startBot().catch(error => {
     setTimeout(() => startBot(), 5000);
 });
 
-// ============================================
-// HEARTBEAT (every 5 minutes)
-// ============================================
 setInterval(() => {
     console.log(`💓 [${new Date().toLocaleTimeString()}] ${config.botName} Bot running`);
 }, 300000);
 
-// ============================================
-// CRASH HANDLERS
-// ============================================
 process.on('uncaughtException', (err) => {
     console.error('💥 Uncaught Exception:', err.message);
     console.log('🔄 Restarting...');
