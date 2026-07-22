@@ -5,48 +5,52 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown } = require('./responses');
-const { startKeepAlive } = require('./keep-alive');
+const { createAPIServer, setBotSocket, setConnectionStatus } = require('./api-server');
 
 // ============================================
-// START KEEP-ALIVE SERVER (for Railway)
+// BANNER
 // ============================================
-startKeepAlive();
+console.log(`
+╔═══════════════════════════════════════╗
+║   🤖 ${config.botName} WhatsApp AI Bot v${config.version}      ║
+║      Auto Reply - 24/7 - Railway      ║
+║         🚫 NO BROWSER REQUIRED        ║
+╚═══════════════════════════════════════╝
+`);
 
 // ============================================
-// SESSION MANAGEMENT
+// START API SERVER FIRST
 // ============================================
-const sessionDir = path.join(__dirname, 'session');
-if (!fs.existsSync(sessionDir)) {
-    fs.mkdirSync(sessionDir, { recursive: true });
-}
+console.log('🌐 Starting API Server...');
+createAPIServer();
+console.log('✅ API Server started');
 
 // ============================================
-// LOGGER CONFIGURATION
+// LOGGER - Silent mode for Railway
 // ============================================
-const logger = pino({
-    level: 'silent', // Set to 'debug' for troubleshooting
-    transport: {
-        target: 'pino/file',
-        options: { destination: '/dev/null' }
-    }
-});
+const logger = pino({ level: 'silent' });
 
 // ============================================
 // MAIN BOT FUNCTION
 // ============================================
 async function startBot() {
-    console.log('╔═══════════════════════════════════╗');
-    console.log(`║   🤖 ${config.botName} AI BOT SYSTEM     ║`);
-    console.log('║       WhatsApp Auto Reply Bot      ║');
-    console.log(`║         Version ${config.version}               ║`);
-    console.log('╚═══════════════════════════════════╝');
-    console.log('\n🔄 Starting bot...\n');
+    console.log('\n🔄 Initializing WhatsApp connection...');
 
+    // ========== Ensure session directory exists ==========
+    const sessionDir = path.join(__dirname, config.sessionDir);
+    if (!fs.existsSync(sessionDir)) {
+        fs.mkdirSync(sessionDir, { recursive: true });
+        console.log('📁 Session directory created');
+    }
+
+    // ========== Load auth state ==========
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+
+    // ========== Get latest Baileys version ==========
     const { version, isLatest } = await fetchLatestBaileysVersion();
+    console.log(`📱 WhatsApp Web Version: ${version.join('.')} ${isLatest ? '(latest)' : ''}`);
 
-    console.log(`📱 WhatsApp Web Version: ${version.join('.')} ${isLatest ? '(latest)' : '(update available)'}`);
-
+    // ========== Create WhatsApp socket ==========
     const sock = makeWASocket({
         version,
         logger,
@@ -61,85 +65,57 @@ async function startBot() {
         getMessage: async () => null
     });
 
-    // ============================================
-    // STORE MESSAGES
-    // ============================================
+    // ========== Pass socket to API server ==========
+    setBotSocket(sock);
+
+    // ========== Message Store ==========
     const store = makeInMemoryStore({ logger: pino({ level: 'silent' }) });
     store.bind(sock.ev);
-
-    // ============================================
-    // PAIR CODE GENERATION
-    // ============================================
-    async function generatePairCode(phoneNumber) {
-        try {
-            // Remove any non-digit characters
-            const cleanNumber = phoneNumber.replace(/\D/g, '');
-            
-            // Ensure it has country code (94 for Sri Lanka)
-            let fullNumber = cleanNumber;
-            if (!fullNumber.startsWith('94')) {
-                fullNumber = '94' + fullNumber.replace(/^0+/, '');
-            }
-
-            console.log(`\n📱 Generating Pair Code for: ${fullNumber}`);
-            
-            const code = await sock.requestPairingCode(fullNumber);
-            
-            if (code) {
-                // Format the code nicely
-                const formattedCode = code.match(/.{1,4}/g)?.join('-') || code;
-                console.log(`✅ Pair Code: ${formattedCode}`);
-                return { success: true, code: formattedCode, rawCode: code };
-            } else {
-                return { success: false, error: 'Failed to generate pair code' };
-            }
-        } catch (error) {
-            console.error('❌ Pair Code Error:', error.message);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ============================================
-    // SEND MESSAGE FUNCTION
-    // ============================================
-    async function sendMessage(jid, text) {
-        try {
-            await sock.sendMessage(jid, { text: text });
-            return true;
-        } catch (error) {
-            console.error('❌ Send Message Error:', error.message);
-            return false;
-        }
-    }
 
     // ============================================
     // CONNECTION UPDATE HANDLER
     // ============================================
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
+        const { connection, lastDisconnect } = update;
 
-        if (qr) {
-            console.log('⚠️ QR Code received - but using Pair Code method instead');
+        if (connection === 'connecting') {
+            console.log('⏳ Connecting to WhatsApp...');
+            setConnectionStatus('connecting');
         }
 
         if (connection === 'open') {
-            console.log('\n✅ ===== BOT CONNECTED SUCCESSFULLY! =====');
-            console.log(`   🤖 ${config.botName} WhatsApp Bot is ONLINE`);
-            console.log(`   📱 Connected at: ${new Date().toLocaleString()}`);
-            console.log('=========================================\n');
+            console.log('\n✅ ✅ ✅ ===== BOT CONNECTED! =====');
+            console.log(`   📱 ${config.botName} is ONLINE`);
+            console.log(`   🕐 ${new Date().toLocaleString()}`);
+            console.log('==================================\n');
+            
+            setConnectionStatus('connected', sock.user);
+            
+            // Generate pair code link in console
+            console.log('📱 Pair Code generate කරන්න:');
+            console.log(`   http://localhost:${config.port}/pair?phone=9475XXXXXXX`);
+            console.log('   (Replace X with your phone number)\n');
         }
 
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error instanceof Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
             
             console.log(`\n⚠️ Connection closed. Reconnecting: ${shouldReconnect}`);
+            setConnectionStatus('reconnecting');
             
             if (shouldReconnect) {
-                console.log('🔄 Reconnecting in 5 seconds...');
-                setTimeout(() => startBot(), 5000);
+                console.log('🔄 Reconnecting in 3 seconds...');
+                setTimeout(() => startBot(), 3000);
             } else {
-                console.log('🚫 Logged out. Please delete session folder and restart.');
-                process.exit(1);
+                console.log('🚫 Logged out. Session deleted. Please generate pair code again.');
+                // Clear session folder
+                if (fs.existsSync(sessionDir)) {
+                    fs.rmSync(sessionDir, { recursive: true, force: true });
+                    console.log('🧹 Session folder cleared');
+                }
+                setConnectionStatus('logged_out');
+                console.log('🔄 Restarting for fresh pairing...');
+                setTimeout(() => startBot(), 2000);
             }
         }
     });
@@ -150,13 +126,14 @@ async function startBot() {
     sock.ev.on('creds.update', saveCreds);
 
     // ============================================
-    // MESSAGE HANDLER - MAIN AUTO-REPLY LOGIC
+    // MESSAGE HANDLER - AUTO REPLY SYSTEM
     // ============================================
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    sock.ev.on('messages.upsert', async ({ messages }) => {
         for (const msg of messages) {
-            // Skip if not a normal message or if it's from the bot itself
+            // Skip if not a normal message or from bot itself
             if (!msg.message || msg.key.fromMe) continue;
 
+            // Get message text
             const text = msg.message?.conversation || 
                          msg.message?.extendedTextMessage?.text || 
                          msg.message?.imageMessage?.caption || '';
@@ -168,98 +145,84 @@ async function startBot() {
 
             const sender = msg.key.participant || jid;
             const pushName = msg.pushName || 'User';
+            const userNumber = jid.split('@')[0];
 
-            console.log(`\n📩 Message from: ${pushName} (${jid})`);
-            console.log(`💬 Text: ${text}`);
+            console.log(`\n📩 [${new Date().toLocaleTimeString()}] From: ${pushName} (${userNumber})`);
+            console.log(`   Message: ${text || '(empty/media)'}`);
 
             try {
-                // Check cooldown
+                // Check cooldown (20 minutes)
                 const cooldown = checkCooldown(sender);
                 
                 if (cooldown.allowed) {
-                    // ============ FIRST REPLY: Welcome + Service Menu ============
+                    // ====== FIRST RESPONSE: Welcome + Menu ======
+                    await sock.sendMessage(jid, { text: getWelcomeMessage() });
+                    console.log(`   ✅ Welcome sent to ${pushName}`);
                     
-                    // 1. Send Welcome Message
-                    await sendMessage(jid, getWelcomeMessage());
-                    console.log(`✅ Welcome message sent to ${pushName}`);
+                    // Small delay so messages don't arrive at exact same time
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     
-                    // 2. Send Service Menu
-                    await sendMessage(jid, getServiceMenu());
-                    console.log(`✅ Service menu sent to ${pushName}`);
+                    await sock.sendMessage(jid, { text: getServiceMenu() });
+                    console.log(`   ✅ Menu sent to ${pushName}`);
                     
                     // Update cooldown
                     updateCooldown(sender);
                     
-                    // ============ SECOND REPLY: Based on user input ============
-                    // If user sent a number, send the corresponding response
-                    const userResponse = getResponse(text);
-                    
-                    // Only send response if it's different from what was already sent
-                    // and if user actually sent something meaningful
-                    if (text.trim().length > 0 && userResponse !== getServiceMenu()) {
-                        // Small delay to simulate thinking
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        await sendMessage(jid, userResponse);
-                        console.log(`✅ Specific response sent to ${pushName} for option: ${text}`);
+                    // ====== SECOND RESPONSE: Based on input ======
+                    if (text.trim().length > 0) {
+                        const userResponse = getResponse(text);
+                        
+                        // Avoid sending duplicate menu
+                        if (userResponse !== getServiceMenu()) {
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            await sock.sendMessage(jid, { text: userResponse });
+                            console.log(`   ✅ Reply sent for option: ${text}`);
+                        }
                     }
                     
                 } else {
-                    console.log(`⏳ Cooldown active for ${pushName}. ${cooldown.remaining} min remaining`);
+                    console.log(`   ⏳ Cooldown: ${cooldown.remaining}min remaining for ${pushName}`);
                     
-                    // Send cooldown notification
                     if (text.trim().length > 0) {
-                        await sendMessage(jid, `⏳ කරුණාකර තව විනාඩි ${cooldown.remaining}කට පසුව නැවත උත්සහ කරන්න...`);
+                        await sock.sendMessage(jid, { 
+                            text: `⏳ කරුණාකර තව විනාඩි ${cooldown.remaining}කට පසුව නැවත උත්සහ කරන්න... 😊` 
+                        });
                     }
                 }
             } catch (error) {
-                console.error('❌ Error processing message:', error.message);
+                console.error(`   ❌ Error: ${error.message}`);
             }
         }
     });
 
-    // ============================================
-    // HANDLE PAIR CODE FROM TERMINAL INPUT
-    // ============================================
-    console.log('\n📱 Pair Code එකක් Generate කරන්න phone number එක ඇතුලත් කරන්න:');
-    console.log('   උදා: 9476XXXXXXX  (යොදන්න: 9475XXXXXXX)');
-    console.log('');
-    console.log('⚠️ Bot start වුනාට පස්සේ පහත විදියට Pair Code එක generate වෙයි:');
-    console.log('   Telegram Bot එකෙන් Pair Wh No - ලෙස එවූ අංකයට Auto code එක generate වේ\n');
-
-    // Listen for terminal input for pairing
-    process.stdin.on('data', async (data) => {
-        const input = data.toString().trim();
-        if (input.length >= 10) {
-            const result = await generatePairCode(input);
-            if (result.success) {
-                console.log(`\n🎯 Pair Code: ${result.code}`);
-                console.log('📱 මෙම Code එක WhatsApp එකට ඇතුලත් කරන්න:\n');
-                console.log('   👉 Open WhatsApp > Linked Devices > Link a Device');
-                console.log(`   👉 Enter code: ${result.code}\n`);
-            }
-        }
-    });
-
+    console.log('\n🚀 Bot initialized! Waiting for messages...\n');
     return sock;
 }
 
 // ============================================
-// START BOT
+// START BOT WITH AUTO-RESTART
 // ============================================
-console.log('\n🚀 Initializing SHANA WhatsApp Bot...\n');
-
 startBot().catch(error => {
-    console.error('❌ Fatal Error:', error.message);
-    console.log('🔄 Restarting in 10 seconds...');
-    setTimeout(() => {
-        console.log('🔄 Restarting bot...');
-        require('child_process').execSync('node index.js', { stdio: 'inherit' });
-    }, 10000);
+    console.error('\n❌ Fatal Error:', error.message);
+    console.log('🔄 Auto-restart in 5 seconds...');
+    setTimeout(() => startBot(), 5000);
 });
 
 // ============================================
-// PREVENT SLEEP - Railway keep alive
+// HEARTBEAT - Keep process alive
 // ============================================
 setInterval(() => {
-    console.log(`💓 Bot heartbeat: ${new Date().toLocaleString()}`);
+    const time = new Date().toLocaleTimeString();
+    console.log(`💓 [${time}] ${config.botName} Bot heartbeat`);
 }, 300000); // Every 5 minutes
+
+// Handle unexpected crashes
+process.on('uncaughtException', (error) => {
+    console.error('\n💥 Uncaught Exception:', error.message);
+    console.log('🔄 Restarting...');
+    setTimeout(() => startBot(), 3000);
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error('\n💥 Unhandled Rejection:', error.message);
+});
