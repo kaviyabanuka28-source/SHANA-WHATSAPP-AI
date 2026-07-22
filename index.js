@@ -130,7 +130,9 @@ async function startBot() {
 
         if (connection === 'close') {
             const isLoggedOut = lastDisconnect?.error?.output?.statusCode === DisconnectReason.loggedOut;
-            console.log(`\n⚠️ Connection closed. Logged out: ${isLoggedOut}`);
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const errorMessage = lastDisconnect?.error?.message || lastDisconnect?.error?.toString() || 'Unknown';
+            console.log(`\n⚠️ Connection closed. StatusCode: ${statusCode}, Error: ${errorMessage}, Logged out: ${isLoggedOut}`);
             setConnectionStatus('reconnecting');
             
             reconnectAttempts++;
@@ -143,7 +145,7 @@ async function startBot() {
                 reconnectAttempts = 0;
                 setTimeout(() => startBot(), 2000);
             } else if (!isLoggedOut) {
-                const delay = Math.min(3000 * reconnectAttempts, 30000); // Exponential backoff
+                const delay = Math.min(3000 * reconnectAttempts, 30000);
                 console.log(`🔄 Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay/1000}s...`);
                 setTimeout(() => startBot(), delay);
             } else {
