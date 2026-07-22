@@ -73,7 +73,16 @@ async function startBot() {
     });
 
     setBotSocket(sock);
-    setTelegramSocket(sock); // 🔥 ADDED - Pass socket to Telegram bot
+
+    // ========== Pass socket to Telegram bot (with safety check) ==========
+    try {
+        const telegramBot = require('./telegram-bot');
+        if (typeof telegramBot.setTelegramSocket === 'function') {
+            telegramBot.setTelegramSocket(sock);
+        }
+    } catch (e) {
+        // Telegram bot optional - WhatsApp bot continues working
+    }
 
     // ============================================
     // CONNECTION UPDATE
