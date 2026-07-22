@@ -1,6 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs", "chromium", "chromedriver"]
-
-[environment]
-PUPPETEER_SKIP_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "/nix/store/$(ls /nix/store | grep chromium | head -1)/bin/chromium"
