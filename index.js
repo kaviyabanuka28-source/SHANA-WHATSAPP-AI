@@ -24,6 +24,12 @@ console.log(`
 let telegramBotStarted = false;
 
 // ============================================
+// GLOBAL RECONNECT COUNTER
+// ============================================
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+// ============================================
 // START API SERVER FIRST
 // ============================================
 console.log('🌐 Starting API Server...');
@@ -127,16 +133,26 @@ async function startBot() {
             console.log(`\n⚠️ Connection closed. Logged out: ${isLoggedOut}`);
             setConnectionStatus('reconnecting');
             
-            if (!isLoggedOut) {
-                console.log('🔄 Reconnecting in 3 seconds...');
-                setTimeout(() => startBot(), 3000);
+            reconnectAttempts++;
+            
+            if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+                console.log('🛑 Max reconnect attempts reached. Clearing session and starting fresh...');
+                if (fs.existsSync(sessionDir)) {
+                    fs.rmSync(sessionDir, { recursive: true, force: true });
+                }
+                reconnectAttempts = 0;
+                setTimeout(() => startBot(), 2000);
+            } else if (!isLoggedOut) {
+                const delay = Math.min(3000 * reconnectAttempts, 30000); // Exponential backoff
+                console.log(`🔄 Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay/1000}s...`);
+                setTimeout(() => startBot(), delay);
             } else {
                 console.log('🚫 Logged out. Clearing session...');
                 if (fs.existsSync(sessionDir)) {
                     fs.rmSync(sessionDir, { recursive: true, force: true });
                 }
                 setConnectionStatus('logged_out');
-                console.log('🔄 Restarting for fresh pair...');
+                reconnectAttempts = 0;
                 setTimeout(() => startBot(), 2000);
             }
         }
