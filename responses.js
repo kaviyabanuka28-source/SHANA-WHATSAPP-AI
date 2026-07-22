@@ -17,7 +17,7 @@ function updateCooldown(userJid) {
     userCooldowns.set(userJid, Date.now());
 }
 
-// Welcome message - sent immediately for ANY message
+// Welcome message
 function getWelcomeMessage() {
     return `AI BOT - ( SHANA කියලා ෆවෆුල් ලොගො එකකුත් මේ මැසෙජ් එකත් එක්ක වැටෙන්න හදන්න)
 SHANA AI BOT SYSTEM 🕹️
@@ -27,6 +27,7 @@ HI සුබ දවසක් සර්,මිස් 😚
 ඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!`;
 }
 
+// Service menu
 function getServiceMenu() {
     return `AI BOT -
 📜 SHANA All SERVICE 
@@ -47,7 +48,7 @@ function getServiceMenu() {
 SOFTWARE DEVELOPR SHANA 🐛`;
 }
 
-// Response handler based on user input
+// Get response based on user input
 function getResponse(userInput) {
     const input = userInput.trim().toLowerCase();
     
@@ -153,11 +154,9 @@ Call , Mg 24/7 Ok ✅`;
             return `AI BOT -ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
 
         default:
-            // If input is a number but not 1-7, send menu
             if (/^\d+$/.test(input)) {
                 return getServiceMenu();
             }
-            // Default response for unknown messages
             return `AI BOT -
 මතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! 
 ඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී...`;
