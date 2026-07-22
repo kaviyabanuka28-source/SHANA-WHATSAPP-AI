@@ -1,5 +1,7 @@
 // ============================================
-// CRYPTO POLYFILL - Baileys සඳහා (Node < 19 fix)
+// 🔥 FIX: CRYPTO POLYFILL (Node.js 18/19 සඳහා)
+//     Baileys Web Crypto API එක require කරන නිසා
+//     globalThis.crypto define කරන්න ඕනෙ
 // ============================================
 const { webcrypto } = require('node:crypto');
 if (!globalThis.crypto) {
@@ -11,7 +13,6 @@ const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-// ... ඉතිරි code එක එහෙමම තියාගන්න
 const { getWelcomeMessage, getServiceMenu, getResponse, checkCooldown, updateCooldown } = require('./responses');
 const { createAPIServer, setBotSocket, setConnectionStatus } = require('./api-server');
 const { startTelegramBot, setTelegramSocket } = require('./telegram-bot');
