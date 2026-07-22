@@ -1,7 +1,7 @@
 const config = {
     botName: "SHANA",
     version: "8.0.0",
-    cooldownTime: 20 * 60 * 1000, // 20 minutes in milliseconds
+    cooldownTime: 20 * 60 * 1000, // 20 minutes
     sessionDir: "session",
     port: process.env.PORT || 8080,
     adminContacts: [
@@ -11,4 +11,4 @@ const config = {
     ]
 };
 
-module.exports = config;
+export default config;
