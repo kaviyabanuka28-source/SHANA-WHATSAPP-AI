@@ -1,10 +1,10 @@
 {
   "name": "shana-whatsapp-bot",
   "version": "1.0.0",
-  "description": "SHANA AI WhatsApp Auto Reply Bot - Railway 24/7",
-  "main": "index.js",
+  "description": "SHANA AI WhatsApp Auto Reply Bot - 24/7",
+  "main": "node.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node node.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.0",
