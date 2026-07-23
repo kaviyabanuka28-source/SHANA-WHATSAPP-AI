@@ -40,7 +40,7 @@ async function sendHumanLikeMessage(sock, sender, messageContent) {
     await delay(1000); // තත්පර 1ක මූලික රැඳීමක්
     await sock.sendPresenceUpdate('composing', sender); // ටයිප් කරමින් සිටී (Typing...)
     
-    // පණිවිඩයේ දිග ප්‍රමාණය අනුව මිනිසෙකුට ගතවන කාලය අනුකරණය කිරීම (තත්පර 2ත් 4ත් අතර)
+    // පණිවිඩයේ දිග ප්‍රමාණය අනුව මිනිසෙකුට ගතවන කාලය අනුකරණය කිරීම
     await delay(2500); 
     
     await sock.sendPresenceUpdate('paused', sender);
@@ -95,26 +95,36 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
-  // පණිවිඩ ලැබුණු විට ක්‍රියාත්මක වන කොටස
-  sock.ev.on('messages.upsert', async (m) => {
+  // පණිවිඩ ලැබුණු විට ක්‍රියාත්මක වන කොටස (Fixed Message Handler)
+  sock.ev.on('messages.upsert', async (chatUpdate) => {
     try {
-      const mek = m.messages[0];
-      if (!mek.message || mek.key.fromMe) return;
+      const mek = chatUpdate.messages[0];
+      if (!mek.message) return;
+      
+      // බොට් විසින්ම යවන පණිවිඩ හෝ සමූහ (Group) වලින් එන පණිවිඩ මඟ හැරීම සඳහා (පුද්ගලික චැට් සඳහා පමණක් ක්‍රියාත්මක වේ)
+      if (mek.key.fromMe) return;
+      if (mek.key.remoteJid.endsWith('@g.us')) return; 
 
+      const sender = mek.key.remoteJid;
+      
+      // පණිවිඩයේ පෙළ ලබා ගැනීම (더 ආරක්ෂිත ක්‍රමයක්)
       const messageType = Object.keys(mek.message)[0];
       let body = '';
+      
       if (messageType === 'conversation') {
         body = mek.message.conversation;
       } else if (messageType === 'extendedTextMessage') {
-        body = mek.message.extendedTextMessage.text;
-      } else {
-        body = mek.message.imageMessage?.caption || mek.message.videoMessage?.caption || '';
+        body = mek.message.extendedTextMessage?.text || '';
+      } else if (messageType === 'imageMessage') {
+        body = mek.message.imageMessage?.caption || '';
+      } else if (messageType === 'videoMessage') {
+        body = mek.message.videoMessage?.caption || '';
       }
 
-      const sender = mek.key.remoteJid;
       const text = body.trim();
-
       if (!text) return;
+
+      console.log(`📩 ලැබුණු පණිවිඩයක් (${sender}): ${text}`);
 
       // ලාංඡන රූපය ෆෝල්ඩරයෙන් කියවා සූදානම් කිරීම (logo.jpg නමින් ෆයිල් එකක් තිබිය යුතුය)
       let logoMessageOptions = {};
@@ -122,7 +132,7 @@ async function startBot() {
         logoMessageOptions = { image: fs.readFileSync('./logo.jpg') };
       }
 
-      // 1. මෙනු අංක (1 සිට 7 දක්වා) පරීක්ෂා කිරීම (මෙම අංක සඳහා කිසිදු ලිමිට් එකක් නොමැත)
+      // 1. මෙනු අංක (1 සිට 7 දක්වා) පරීක්ෂා කිරීම
       if (['1', '2', '3', '4', '5', '6', '7'].includes(text)) {
         
         if (text === '1') {
