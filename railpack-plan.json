@@ -1,7 +1,0 @@
-{
-  "packages": {
-    "node": "18.20.8"
-  },
-  "start": "node index.js",
-  "install": "npm install"
-}
