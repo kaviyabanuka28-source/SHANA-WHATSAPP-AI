@@ -114,7 +114,7 @@ async function startBot() {
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         } 
         else if (text === '2') {
@@ -123,7 +123,7 @@ async function startBot() {
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '3') {
@@ -132,7 +132,7 @@ async function startBot() {
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '4') {
@@ -141,16 +141,16 @@ async function startBot() {
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '5') {
-          const replyText = `AI BOT -0758862130/0742381405/0703557568\nCall , Mg 24/7 Ok ✅`;
+          const replyText = `0758862130/0742381405/0703557568\nCall , Mg 24/7 Ok ✅`;
 
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '6') {
@@ -159,16 +159,16 @@ async function startBot() {
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA 🕹\n\n` + replyText });
           }
         }
         else if (text === '7') {
-          const replyText = `AI BOT -ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
+          const replyText = `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
 
           if (logoMessageOptions.image) {
             await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + replyText });
+            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
       } 
@@ -180,14 +180,14 @@ async function startBot() {
         const welcomeMsg = `SHANA AI BOT SYSTEM 🕹\n-----------------------------\nHI සුබ දවසක් සර්,මිස් 😚\n\nඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!\n\n📜 SHANA All SERVICE \n\n1. SHANA 1XBET DEPOSIT තොරතුරු ✅\n2. SHANA 1XBET WITHDRAW තොරතුරු ✅\n3. SHANA 1XBET VIP PROMO CODE තොරතුරු ✅\n4. WEB SITE & SOFTWARE සාදාගැනිමට ✅\n5. SOCAL MRDIA BOOST ( All plate Fom ) \n5. SHANA CONTACTS කරගැනිමට ✅\n6. AVIATOR HIGH ODD අනලයිසින් ඉගෙන ගැනිමටනම් ✅\n7.Whatsapp Ai Auto Replay Bot සාදාගැනිමටනම් ✅\n\nකරුණාකරලා ඔබට අවශ්ශය සෙවාව උඩ Menu එකේ ඇත්නම් එම අංකය ලාබාදෙන්න!..... \n\nඔබට වෙනත් කරුණක් දැන්විමට අවශ්ශයනම් පහලින් සදහන් කරන්න මම එය ඉතාමත් ඉක්මනට SHANA වේත දැන්වීමට සලස්වන්නම් \n--------------------------------\nSOFTWARE DEVELOPR SHANA 🐛`;
 
         if (logoMessageOptions.image) {
-          await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + welcomeMsg });
+          await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA  🕹\n\n` + welcomeMsg });
         } else {
-          await sock.sendMessage(sender, { text: `SHANA LOGO 🕹\n\n` + welcomeMsg });
+          await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + welcomeMsg });
         }
 
         // අංකයක් නොවන වෙනත් මැසේජ් එකක් සඳහා ෆෝල්බැක් මැසේජ් එක
         await delay(2000); 
-        const fallbackMsg = `AI BOT -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී... `;
+        const fallbackMsg = ` -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී... `;
         
         await sock.sendMessage(sender, { text: fallbackMsg });
       }
