@@ -1,9 +1,12 @@
 {
-  "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" },
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
   "deploy": {
     "numReplicas": 1,
     "restartPolicyType": "ALWAYS",
     "healthcheckPath": "/",
-    "healthcheckTimeout": 300
+    "healthcheckTimeout": 30
   }
 }
