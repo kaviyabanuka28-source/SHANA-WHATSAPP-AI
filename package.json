@@ -1,7 +1,6 @@
 {
   "name": "shana-whatsapp-bot",
   "version": "1.0.0",
-  "description": "SHANA AI WhatsApp Auto Reply Bot - 24/7",
   "main": "node.js",
   "scripts": {
     "start": "node node.js"
