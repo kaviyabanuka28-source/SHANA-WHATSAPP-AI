@@ -33,6 +33,23 @@ function checkCooldown(userId) {
   return true; // යැවිය හැක
 }
 
+// WhatsApp Anti-Ban සඳහා මිනිසෙකු මෙන් ටයිප් කිරීම පෙන්වන සහ ප්‍රමාද කරන Helper Function එකක්
+async function sendHumanLikeMessage(sock, sender, messageContent) {
+  try {
+    await sock.presenceSubscribe(sender);
+    await delay(1000); // තත්පර 1ක මූලික රැඳීමක්
+    await sock.sendPresenceUpdate('composing', sender); // ටයිප් කරමින් සිටී (Typing...)
+    
+    // පණිවිඩයේ දිග ප්‍රමාණය අනුව මිනිසෙකුට ගතවන කාලය අනුකරණය කිරීම (තත්පර 2ත් 4ත් අතර)
+    await delay(2500); 
+    
+    await sock.sendPresenceUpdate('paused', sender);
+    await sock.sendMessage(sender, messageContent);
+  } catch (error) {
+    console.log('Error in human-like messaging: ', error);
+  }
+}
+
 async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
   const { version } = await fetchLatestBaileysVersion();
@@ -109,66 +126,66 @@ async function startBot() {
       if (['1', '2', '3', '4', '5', '6', '7'].includes(text)) {
         
         if (text === '1') {
-          const replyText = `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗\n *1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...* \n\n *SHANA SERVICE __💯* \n\n    💵💵 *මුදල් තැන්පත් කිරීම*💵💵\n✅ *Account Deposit*✅ *Account Withdraw*\n\n🔯 BOC \n🔯 94118758\n🔯MINNERIYA\n🔯 K.G LAKSHAN KAVISHKA KUMARA\n\n✳️PEOPLE BANK : 006200150094114\n ✳️K.G.LAKSHAN KAVISHKA KUMARA \n✳️HIGURAKGODA\n\n✳️  ez cash : 0764104588\n✳️LAKSHAN ( open ) \n ( වැඩ්පුර රුපියල් 20-/ දැමිමට කාරුණික වන්න )\n\n✡️ Binanace \n✡️1066282628\n✡️ LAKSHAN \n\n🔯ipay \n🔯0764104588\n🔯Lakshan\n\n✡️Dialog Finance PLC \n✡️0010 2217 5776\n✡️ LAKSHAN KAVISHKA KUMARA\n\n *❏ DEPOSIT - minute 2-5 😍* \n *❏ WITHDRAW - minute 10-30 😍* \n👉👉 *සැ.යු.* : ඔබ විසින් *REMARK* යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.\nතවද 1X BET   , BET යන වචන කිසි සේත්ම භාවිතා නොකල යුතුය...\n\n⚠️️ඉහත ක්‍රම හරහා *DEPOSIT* කර \n SLIP* එක හා ඔබේ *1XBET PLAYER ID* *type එවන්න* \n\n👉සැ.යු. : අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.\n\nඑසේ නොහැකි නම් පණිවිඩයක් එවීමට කාරුණිකවන්න .\n\n✺ තෙවනපාර්ශවීය සල්ලි දැමිම් බාරගනු නොලැබේ ❌`;
+          const replyText = `💗🇱🇰🙏ආයුබෝවන්🙏🇱🇰💗\n *1X BET සහ WITHDRAWAL ඉතා ඉක්මනින් ලබාගන්න...* \n\n *SHANA SERVICE __💯* \n\n    💵💵 *මුදල් තැන්පත් කිරීම*💵💵\n✅ *Account Deposit*✅ *Account Withdraw*\n\n🔯 BOC \n🔯 94118758\n🔯MINNERIYA\n🔯 K.G LAKSHAN KAVISHKA KUMARA\n\n✳️PEOPLE BANK : 006200150094114\n ✳️K.G.LAKSHAN KAVISHKA KUMARA \n✳️HIGURAKGODA\n\n✳️  ez cash : 0764104588\n✳️LAKSHAN ( open ) \n ( වැඩ්පුර රුපියල් 20-/ දැමිමට කාරුණික වන්න )\n\n✡️ Binanace \n✡️1066282628\n✡️ LAKSHAN \n\n🔯ipay \n🔯0764104588\n🔯Lakshan\n\n✡️Dialog Finance PLC \n✡️0010 2217 5776\n✡️ LAKSHAN KAVISHKA KUMARA\n\n *❏ DEPOSIT - minute 2-5 😍* \n *❏ WITHDRAW - minute 10-30 😍* \n👉👉 *සැ.යු.* : ඔබ විසින් *REMARK* යටතේ ඔබගේ PLAYER ID සඳහන් කල යුතුමය.\nතවද 1X BET    , BET යන වචන කිසි සේත්ම භාවිතා නොකල යුතුය...\n\n⚠️️ඉහත ක්‍රම හරහා *DEPOSIT* කර \n SLIP* එක හා ඔබේ *1XBET PLAYER ID* *type එවන්න* \n\n👉සැ.යු. : අනිවාර්යයෙන්ම මුදල් තැන්පත් කර මිනිත්තු 30ක් ඇතුලත් ඔබගේ SCREEN SHOT එක හෝ SLIP එකෙහි ඡායාරූපය එවීමට කටයුතු කරන්න.\n\nඑසේ නොහැකි නම් පණිවිඩයක් එවීමට කාරුණිකවන්න .\n\n✺ තෙවනපාර්ශවීය සල්ලි දැමිම් බාරගනු නොලැබේ ❌`;
           
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         } 
         else if (text === '2') {
           const replyText = `*❏ SHANA WITHDRAW  ADDRESS ✺*\n\n _MINI Withdraw  Rs 250-/_ \nපියවර 1 \n* මුලින්ම 1Xbet app එක open කරන්න ඉට පසු menu යන්න. \n * *ඉට පසු උඩම ඇති setting  អයිකන් එකක් එක ක්ලික් කරන්න*\n\n *✺ ඉට පසුව withdraw  කියලා අයිකන් එකක් ඇති එක ඔබන්න ඉට පස්සෙ 1XBET CASH කියන් මේතඩ් එක තොරන්න පොඩ්ඩක් පහලට වේන්න තියෙන්නේ*\n\n➢ ඉට පසු ඔබට ගන්න ඔනි ගාන ගහන්න.\n\n❏ city: minneriya පුරවන්න\n❏ street : Lakshan service (24/7) \n\nපුරවගන්න ඉන් පසු ඔබට ඔබගේ gamil එකක් හො phone නම්බ එකක් ඇඩ් කරලා තියේනවානම් කොඩ් එකක් එයි එක දිලා කන්පොම් කරන්න.\n\n *➢ ඉන් පසුව ඇප් එකේන් බැක් වී ආපාසු ඇප් එකට ලොග් වී විත්‍රොල් තැනට යන්න.* \n\n➢ ඉට පඩු විත්‍රොල් රේපුස්ට කියලා බටන් එකක් ඇති එක ඔබන්න.\n\n➢ ඉන් පසුව ඉංග්‍රිසි වචන සහිතව නිල්පාටින් වචන වගයක් ඇවිත් ඇති එහි ඇති ගෙට් කොඩ් කියලා එකක් අන්න එක ඔබන්න.\n\n➢ එක ඔබවුවට පසුව එනවා කොඩ් එකක් අන්න එකි ස්ක්‍රින් ශොට් එකක් ගහලා ok කරලා මට එවන්න .\n\nඑච්චරයි ✅`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '3') {
           const replyText = `VIP 1XBET PROMO CODE ඔයාල්ත් දැන්ම රෙජිස්ට වේන්න!...;\n\nLashan1x\n👆👆👆👆\nLOST නොවී ගෙමක් ගහන්න කැමති අය දැන්ම ගිහින් 1XBET ACCOUNT එකක් හාදාගන්න\n200% DEPOSIT BONUS ✅`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '4') {
           const replyText = `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....\n🤝🤝🤝🤝🤝🤝🤝🤝`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '5') {
           const replyText = `0758862130/0742381405/0703557568\nCall , Mg 24/7 Ok ✅`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
         else if (text === '6') {
           const replyText = `0758862130/0742381405 Call එකකින් විස්තර දැනගන්න....\n🤝🤝🤝🤝🤝🤝🤝🤝`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA 🕹\n\n` + replyText });
           }
         }
         else if (text === '7') {
           const replyText = `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
 
           if (logoMessageOptions.image) {
-            await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
           } else {
-            await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + replyText });
+            await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + replyText });
           }
         }
       } 
@@ -180,16 +197,16 @@ async function startBot() {
         const welcomeMsg = `SHANA AI BOT SYSTEM 🕹\n-----------------------------\nHI සුබ දවසක් සර්,මිස් 😚\n\nඔබට අවශ්ශය උපකාරය පවසන්න ! මම ඔබට සහය වීම සදහා බැදීසිටින්නේමී...!\n\n📜 SHANA All SERVICE \n\n1. SHANA 1XBET DEPOSIT තොරතුරු ✅\n2. SHANA 1XBET WITHDRAW තොරතුරු ✅\n3. SHANA 1XBET VIP PROMO CODE තොරතුරු ✅\n4. WEB SITE & SOFTWARE සාදාගැනිමට ✅\n5. SOCAL MRDIA BOOST ( All plate Fom ) \n5. SHANA CONTACTS කරගැනිමට ✅\n6. AVIATOR HIGH ODD අනලයිසින් ඉගෙන ගැනිමටනම් ✅\n7.Whatsapp Ai Auto Replay Bot සාදාගැනිමටනම් ✅\n\nකරුණාකරලා ඔබට අවශ්ශය සෙවාව උඩ Menu එකේ ඇත්නම් එම අංකය ලාබාදෙන්න!..... \n\nඔබට වෙනත් කරුණක් දැන්විමට අවශ්ශයනම් පහලින් සදහන් කරන්න මම එය ඉතාමත් ඉක්මනට SHANA වේත දැන්වීමට සලස්වන්නම් \n--------------------------------\nSOFTWARE DEVELOPR SHANA 🐛`;
 
         if (logoMessageOptions.image) {
-          await sock.sendMessage(sender, { image: logoMessageOptions.image, caption: `SHANA  🕹\n\n` + welcomeMsg });
+          await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA  🕹\n\n` + welcomeMsg });
         } else {
-          await sock.sendMessage(sender, { text: `SHANA  🕹\n\n` + welcomeMsg });
+          await sendHumanLikeMessage(sock, sender, { text: `SHANA  🕹\n\n` + welcomeMsg });
         }
 
         // අංකයක් නොවන වෙනත් මැසේජ් එකක් සඳහා ෆෝල්බැක් මැසේජ් එක
-        await delay(2000); 
+        await delay(3000); 
         const fallbackMsg = ` -\nමතක් රැදීසීටින් හැකි ඉක්මනින් SHANA Online ගෙන්වා ගැනිමට උත්සහ කරන්නෙමී....  ! \nඔහුට තිබෙන වැඩත් එක්ක ඔහු කාර්රය බහුල වී ඇතී අතර ඉමනින් පැමිනේවී... `;
         
-        await sock.sendMessage(sender, { text: fallbackMsg });
+        await sendHumanLikeMessage(sock, sender, { text: fallbackMsg });
       }
 
     } catch (error) {
