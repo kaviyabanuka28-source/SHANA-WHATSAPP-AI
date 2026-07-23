@@ -4,7 +4,7 @@
   "description": "SHANA AI WhatsApp Auto Reply Bot",
   "main": "node.js",
   "scripts": {
-    "start": "node node.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.7.0",
