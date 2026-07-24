@@ -33,15 +33,19 @@ function checkCooldown(userId) {
   return true; // යැවිය හැක
 }
 
-// WhatsApp Anti-Ban සඳහා මිනිසෙකු මෙන් ටයිප් කිරීම පෙන්වන සහ ප්‍රමාද කරන Helper Function එකක්
+// WhatsApp Anti-Ban සඳහා මිනිසෙකු මෙන් ස්වභාවිකව ටයිප් කිරීම සහ බෑන් වීම වැළැක්වීමේ ආරක්‍ෂිත ප්‍රමාදයන්
 async function sendHumanLikeMessage(sock, sender, messageContent) {
   try {
+    // බෑන් වීම වැළැක්වීමට අහඹු ප්‍රමාදයන් (Random delays) එකතු කිරීම
+    const randomPresenceDelay = Math.floor(Math.random() * 1000) + 1500; // තත්පර 1.5 - 2.5 අතර
+    const randomTypingDelay = Math.floor(Math.random() * 2000) + 3000;   // තත්පර 3.0 - 5.0 අතර
+
     await sock.presenceSubscribe(sender);
-    await delay(1000); // තත්පර 1ක මූලික රැඳීමක්
-    await sock.sendPresenceUpdate('composing', sender); // ටයිප් කරමින් සිටී (Typing...)
+    await delay(randomPresenceDelay);
     
-    // පණිවිඩයේ දිග ප්‍රමාණය අනුව මිනිසෙකුට ගතවන කාලය අනුකරණය කිරීම
-    await delay(2500); 
+    // ටයිප් කරමින් සිටී (composing) ලෙස පෙන්වීම
+    await sock.sendPresenceUpdate('composing', sender);
+    await delay(randomTypingDelay);
     
     await sock.sendPresenceUpdate('paused', sender);
     await sock.sendMessage(sender, messageContent);
@@ -58,7 +62,12 @@ async function startBot() {
     version,
     logger: pino({ level: 'silent' }),
     auth: state,
-    printQRInTerminal: false
+    printQRInTerminal: false,
+    // WhatsApp Anti-Ban සහ ස්ථාවරත්වය වැඩි කරන අතිරේක වින්‍යාසයන්
+    browser: ["Ubuntu", "Chrome", "20.0.04"],
+    markOnlineOnConnect: true,
+    emitOwnEvents: false,
+    getMessage: async () => { return { conversation: 'hello' } }
   });
 
   // Pairing Code ලබා ගැනීම (Railway Variables හරහා)
@@ -86,7 +95,7 @@ async function startBot() {
       const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log('ချိတ်විම බිඳ වැටුණි. නැවත සම්බන්ධ වෙමින් පවතී...', shouldReconnect);
       if (shouldReconnect) {
-        startBot();
+        setTimeout(() => startBot(), 5000); // නැවත සම්බන්ධ වීමේදී තත්පර 5ක ආරක්ෂිත ප්‍රමාදයක්
       }
     } else if (connection === 'open') {
       console.log('\n✅ SHANA AI Bot සාර්ථකව WhatsApp වෙත සම්බන්ධ විය!');
@@ -95,19 +104,18 @@ async function startBot() {
 
   sock.ev.on('creds.update', saveCreds);
 
-  // පණිවිඩ ලැබුණු විට ක්‍රියාත්මක වන කොටස (Fixed Message Handler)
+  // පණිවිඩ ලැබුණු විට ක්‍රියාත්මක වන කොටස
   sock.ev.on('messages.upsert', async (chatUpdate) => {
     try {
       const mek = chatUpdate.messages[0];
       if (!mek.message) return;
       
-      // බොට් විසින්ම යවන පණිවිඩ හෝ සමූහ (Group) වලින් එන පණිවිඩ මඟ හැරීම සඳහා (පුද්ගලික චැට් සඳහා පමණක් ක්‍රියාත්මක වේ)
+      // බොට් විසින්ම යවන පණිවිඩ හෝ සමූහ (Group) වලින් එන පණිවිඩ මඟ හැරීම (අංක බෑන් වීම වැළැක්වීමට ගෘප් මැසේජ් බ්ලොක් කිරීම)
       if (mek.key.fromMe) return;
       if (mek.key.remoteJid.endsWith('@g.us')) return; 
 
       const sender = mek.key.remoteJid;
       
-      // පණිවිඩයේ පෙළ ලබා ගැනීම (더 ආරක්ෂිත ක්‍රමයක්)
       const messageType = Object.keys(mek.message)[0];
       let body = '';
       
@@ -132,7 +140,7 @@ async function startBot() {
         logoMessageOptions = { image: fs.readFileSync('./logo.jpg') };
       }
 
-      // 1. මෙනු අංක (1 සිට 7 දක්වා) පරීක්ෂා කිරීම
+      // 1. මෙනු අංක (1 සිට 7 දක්වා) පරීක්ෂා කිරීම (මෙම අංක සඳහා කිසිදු ලිමිට් එකක් නොමැත)
       if (['1', '2', '3', '4', '5', '6', '7'].includes(text)) {
         
         if (text === '1') {
@@ -190,7 +198,7 @@ async function startBot() {
           }
         }
         else if (text === '7') {
-          const replyText = `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංකයට අමතන්න 0758862130 ✅`;
+          const replyText = `ඔබට අඩුම මුදලට 24/7 AUTO reply Bot කෙනෙක් ඔබගේ නමින් හාදාගැනිමට අවශ්ශයයිනම් පහල දුරකතන අංයට අමතන්න 0758862130 ✅`;
 
           if (logoMessageOptions.image) {
             await sendHumanLikeMessage(sock, sender, { image: logoMessageOptions.image, caption: `SHANA LOGO 🕹\n\n` + replyText });
