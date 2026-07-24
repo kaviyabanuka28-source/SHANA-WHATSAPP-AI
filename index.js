@@ -3,7 +3,8 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  delay
+  delay,
+  Browsers
 } = require('@whiskeysockets/baileys');
 const pino = require('pino');
 const http = require('http');
@@ -36,14 +37,12 @@ function checkCooldown(userId) {
 // WhatsApp Anti-Ban සඳහා මිනිසෙකු මෙන් ස්වභාවිකව ටයිප් කිරීම සහ බෑන් වීම වැළැක්වීමේ ආරක්‍ෂිත ප්‍රමාදයන්
 async function sendHumanLikeMessage(sock, sender, messageContent) {
   try {
-    // බෑන් වීම වැළැක්වීමට අහඹු ප්‍රමාදයන් (Random delays) එකතු කිරීම
     const randomPresenceDelay = Math.floor(Math.random() * 1000) + 1500; // තත්පර 1.5 - 2.5 අතර
     const randomTypingDelay = Math.floor(Math.random() * 2000) + 3000;   // තත්පර 3.0 - 5.0 අතර
 
     await sock.presenceSubscribe(sender);
     await delay(randomPresenceDelay);
     
-    // ටයිප් කරමින් සිටී (composing) ලෙස පෙන්වීම
     await sock.sendPresenceUpdate('composing', sender);
     await delay(randomTypingDelay);
     
@@ -63,14 +62,16 @@ async function startBot() {
     logger: pino({ level: 'silent' }),
     auth: state,
     printQRInTerminal: false,
-    // WhatsApp Anti-Ban සහ ස්ථාවරත්වය වැඩි කරන අතිරේක වින්‍යාසයන්
-    browser: ["Ubuntu", "Chrome", "20.0.04"],
+    // Pairing Code නොටිෆිකේෂන් ගැටළුව මඟහරවා ගැනීමට නිවැරදි Browser වින්‍යාසය
+    browser: Browsers.macOS('Chrome'),
     markOnlineOnConnect: true,
-    emitOwnEvents: false,
+    emitOwnEvents: true,
     getMessage: async () => { return { conversation: 'hello' } }
   });
 
-  // Pairing Code ලබා ගැනීම (Railway Variables හරහා)
+  sock.ev.on('creds.update', saveCreds);
+
+  // Pairing Code ලබා ගැනීම සහ WhatsApp නොටිෆිකේෂන් එක සක්‍රීය කිරීම (Railway Variables හරහා)
   if (!sock.authState.creds.registered) {
     const phoneNumber = process.env.PHONE_NUMBER;
     
@@ -79,14 +80,19 @@ async function startBot() {
       return;
     }
 
+    // සර්වර් එක සම්පූර්ණයෙන්ම ස්ටාර්ට් වී සොකට් එක සූදානම් වන තෙක් තත්පර 5ක ආරක්ෂිත රැඳීමක්
     console.log(`\n⏳ Pairing code එක ජනෙරේට් වෙමින් පවතී. කරුණාකර රැඳී සිටින්න...`);
-    await delay(3000);
+    await delay(5000);
     
-    let code = await sock.requestPairingCode(phoneNumber.trim());
-    code = code?.match(/.{1,4}/g)?.join('-') || code;
-    console.log(`\n========================================`);
-    console.log(`📌 ඔබගේ WhatsApp Pairing Code එක මෙයයි: \x1b[32m${code}\x1b[0m`);
-    console.log(`========================================\n`);
+    try {
+      let code = await sock.requestPairingCode(phoneNumber.trim().replace(/[^0-9]/g, ''));
+      code = code?.match(/.{1,4}/g)?.join('-') || code;
+      console.log(`\n========================================`);
+      console.log(`📌 ඔබගේ WhatsApp Pairing Code එක මෙයයි: \x1b[32m${code}\x1b[0m`);
+      console.log(`========================================\n`);
+    } catch (err) {
+      console.log('❌ Pairing Code ලබාගැනීමේදී දෝෂයක් ඇති විය:', err);
+    }
   }
 
   sock.ev.on('connection.update', async (update) => {
@@ -95,14 +101,12 @@ async function startBot() {
       const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log('ချိတ်විම බිඳ වැටුණි. නැවත සම්බන්ධ වෙමින් පවතී...', shouldReconnect);
       if (shouldReconnect) {
-        setTimeout(() => startBot(), 5000); // නැවත සම්බන්ධ වීමේදී තත්පර 5ක ආරක්ෂිත ප්‍රමාදයක්
+        setTimeout(() => startBot(), 5000);
       }
     } else if (connection === 'open') {
       console.log('\n✅ SHANA AI Bot සාර්ථකව WhatsApp වෙත සම්බන්ධ විය!');
     }
   });
-
-  sock.ev.on('creds.update', saveCreds);
 
   // පණිවිඩ ලැබුණු විට ක්‍රියාත්මක වන කොටස
   sock.ev.on('messages.upsert', async (chatUpdate) => {
@@ -110,7 +114,6 @@ async function startBot() {
       const mek = chatUpdate.messages[0];
       if (!mek.message) return;
       
-      // බොට් විසින්ම යවන පණිවිඩ හෝ සමූහ (Group) වලින් එන පණිවිඩ මඟ හැරීම (අංක බෑන් වීම වැළැක්වීමට ගෘප් මැසේජ් බ්ලොක් කිරීම)
       if (mek.key.fromMe) return;
       if (mek.key.remoteJid.endsWith('@g.us')) return; 
 
